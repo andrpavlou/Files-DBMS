@@ -50,8 +50,6 @@ int HP_CreateFile(char *fileName){
   pinfo->id = block_num - 1;                                                  //The id of the last block inserted.   
   pinfo->max_rec = (BF_BLOCK_SIZE - sizeof(HP_info) )/ (sizeof(Record) + 1);  //Maximum records allowed in a block.
 
-  //Close the file.
-  CALL_BF(BF_CloseFile(file_desc));
   //Free memory of block structure.
   BF_Block_Destroy(&block);
 
@@ -132,6 +130,7 @@ int HP_InsertEntry(int file_desc,HP_info* hp_info, Record record){
 
     BF_Block_SetDirty(block);
     CALL_BF(BF_UnpinBlock(block));
+    BF_Block_Destroy(&block);
 
     return hp_info->id;
   }
@@ -153,7 +152,8 @@ int HP_InsertEntry(int file_desc,HP_info* hp_info, Record record){
 
     BF_Block_SetDirty(block);
     CALL_BF(BF_UnpinBlock(block));
-    
+
+    BF_Block_Destroy(&block);
     return hp_info->id;
   }
   //There is no space in the last block so a new one must be allocated.
@@ -177,6 +177,7 @@ int HP_InsertEntry(int file_desc,HP_info* hp_info, Record record){
     BF_Block_SetDirty(block);
     CALL_BF(BF_UnpinBlock(block));
 
+    BF_Block_Destroy(&block);
     return hp_info->id;
   } 
   
@@ -215,11 +216,13 @@ int HP_GetAllEntries(int file_desc,HP_info* hp_info, int value){
         printRecord(*next_rec); 
         //Number of blocks that were read.
         last = i; 
+        BF_Block_Destroy(&block);
         return last;
       }
     }
     CALL_BF(BF_UnpinBlock(block));
   }
+  BF_Block_Destroy(&block);
   //Returns -1 if the id was not found.
   return last;
 }

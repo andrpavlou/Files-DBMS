@@ -1,6 +1,6 @@
 hp:
 	@echo " Compile hp_main ...";
-	gcc -I ./include/ -L ./lib/ -Wl,-rpath,./lib/ ./examples/hp_main.c ./src/record.c ./src/hp_file.c -lbf -o ./build/hp_main -O2
+	gcc -g -Og -std=gnu99 -I ./include/ -L ./lib/ -Wl,-rpath,./lib/ ./examples/hp_main.c ./src/record.c ./src/hp_file.c -lbf -o ./build/hp_main -O2
 
 bf:
 	@echo " Compile bf_main ...";
@@ -10,7 +10,10 @@ ht:
 	@echo " Compile hp_main ...";
 	gcc -I ./include/ -L ./lib/ -Wl,-rpath,./lib/ ./examples/ht_main.c ./src/record.c ./src/ht_table.c -lbf -o ./build/ht_main -O2
 
-
 run:
 	rm data.db
 	./build/hp_main
+
+valgrind:
+	rm data.db
+	valgrind ./build/hp_main
