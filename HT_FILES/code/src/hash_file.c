@@ -29,14 +29,45 @@ typedef struct {
 Index_info* open_files[MAX_OPEN_FILES];
 
 
-// typedef struct {
-// 	int local_depth;
-// }Index_info;
-
-
 HT_ErrorCode HT_Init(){
   //insert code here
+  
 	return HT_OK;
+}
+
+
+//https://web.archive.org/web/20071223173210/http://www.concentric.net/~Ttwang/tech/inthash.htm
+unsigned int hash32shift(unsigned int key) {
+    key = ~key + (key << 15); // key = (key << 15) - key - 1;
+    key = key ^ (key >> 12);
+    key = key + (key << 2);
+    key = key ^ (key >> 4);
+    key = key * 2057; // key = (key + (key << 3)) + (key << 11);
+    key = key ^ (key >> 16);
+    return key;
+}
+
+void intToBinary(int num, char* string_key) {
+    int bits = sizeof(num) * 8;
+	char* result = malloc(32 * sizeof(char));
+	char* temp = malloc(32 * sizeof(char));
+
+	char cbits[2];
+	
+    for (int i = bits - 1; i >= 0; i--) {
+        int bit = (num >> i) & 1;
+
+		sprintf(cbits, "%d", bit);
+		strcat(temp, cbits);
+    }
+
+	strcpy(string_key, temp);
+
+	free(temp);
+	free(result);
+}
+void most_significant_bits(char* string, char* string_key, int global_depth){
+	strncpy(string, string_key, global_depth);
 }
 
 
@@ -44,6 +75,8 @@ HT_ErrorCode HT_CreateIndex(const char *filename, int depth) {
 	int file_desc;
   	BF_Block* block;
   	Index_info* index;
+
+
 
 	CALL_BF(BF_CreateFile(filename)); 
 	CALL_BF(BF_OpenFile(filename, &file_desc));
@@ -99,6 +132,7 @@ HT_ErrorCode HT_OpenIndex(const char *fileName, int *indexDesc){
 HT_ErrorCode HT_CloseFile(int indexDesc) {
 	//insert code here
 	///////////////////////////// set_dirty!?!?!??!?!?!?!
+
 	Index_info* index;
 	index = open_files[indexDesc];
 
