@@ -6,7 +6,8 @@
 #include "hash_file.h"
 
 #define RECORDS_NUM 1000 // you can change it if you want
-#define GLOBAL_DEPT 2 // you can change it if you want
+#define GLOBAL_DEPT 1 // you can change it if you want
+
 #define FILE_NAME "data.db"
 
 const char* names[] = {
@@ -74,7 +75,7 @@ int main() {
   srand(12569874);
   int r;
   printf("Insert Entries\n");
-  for (int id = 0; id < RECORDS_NUM; ++id) {
+  for (int id = 0; id < 2; ++id) {
     // create a record
     record.id = id;
     r = rand() % 12;
@@ -90,9 +91,9 @@ int main() {
   printf("RUN PrintAllEntries\n");
   int id = rand() % RECORDS_NUM;
   CALL_OR_DIE(HT_PrintAllEntries(indexDesc, &id));
-  //CALL_OR_DIE(HT_PrintAllEntries(indexDesc, NULL));
+  // CALL_OR_DIE(HT_PrintAllEntries(indexDesc, NULL));
 
 
-  CALL_OR_DIE(HT_CloseFile(indexDesc));
+  // CALL_OR_DIE(HT_CloseFile(indexDesc));
   BF_Close();
 }

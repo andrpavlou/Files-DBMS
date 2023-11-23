@@ -48,7 +48,7 @@ int HP_CreateFile(char *fileName){
   CALL_BF(BF_GetBlockCounter(file_desc, &block_num));
   
   pinfo->id = block_num - 1;                                                  //The id of the last block inserted.   
-  pinfo->max_rec = (BF_BLOCK_SIZE - sizeof(HP_info) )/ (sizeof(Record) + 1);  //Maximum records allowed in a block.
+  pinfo->max_rec = (BF_BLOCK_SIZE - sizeof(HP_block_info) )/ (sizeof(Record) + 1);  //Maximum records allowed in a block.
 
   //Free memory of block structure.
   BF_Block_Destroy(&block);
@@ -146,7 +146,7 @@ int HP_InsertEntry(int file_desc,HP_info* hp_info, Record record){
   if(pbinfo->num_rec < hp_info->max_rec){
     Record* rec;
     //rec has the memory address of the end of the last record.
-    rec = (data+ sizeof(HP_block_info) + sizeof(Record) * pbinfo->num_rec);
+    rec = (data + sizeof(HP_block_info) + sizeof(Record) * pbinfo->num_rec);
     *rec = record;
     pbinfo->num_rec ++;
 
