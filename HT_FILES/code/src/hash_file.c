@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
@@ -22,7 +22,7 @@
 typedef struct{
   int global_depth;
   int file_desc;
-  int ht_size;
+  int size;
   int bucket_num;
   int max_rec;
   BF_Block** hash_table;
@@ -116,11 +116,11 @@ HT_ErrorCode HT_CreateIndex(const char *filename, int depth) {
   	index->max_rec = (BF_BLOCK_SIZE - sizeof(Bucket_info)) / (sizeof(Record) + 1); //prepei na arxikopoihthei alliws
 	// printf("\n\n\nidndex->max_rec%d ", index->max_rec);
 
-	index->ht_size = power;
+	index->size = power;
 
   
 
-  	index->hash_table = malloc(power * sizeof(BF_Block*));
+  	index->hash_table = malloc(index->size * sizeof(BF_Block*));
   
 
   	BF_Block_Destroy(&block);
@@ -172,82 +172,148 @@ HT_ErrorCode HT_CloseFile(int indexDesc) {
 	return HT_OK;
 }
 
+int final_key_index(int id, int bit_num){
+
+	int key = hash_func(id);
+	char str_key[32];
+	intToBinary(key, str_key);
+	char* msb = malloc(bit_num * sizeof(char));
+	most_significant_bits(msb, str_key, bit_num);
+	int arraykey = stringToInt(msb);
+
+	return arraykey;
+}
+
 HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
   //insert code here
-  	Index_info* ht_info;
+  	Index_info* index;
  	BF_Block* block;
 
   	void* data;
-  	ht_info = open_files[indexDesc];
-  	int ht_size = ht_info->ht_size;
-  	int num_buck = ht_info->bucket_num;
-  	int filedesc = ht_info->file_desc;
+  	index = open_files[indexDesc];
+  	int ht_size = index->size;
+  	int num_buck = index->bucket_num;
+  	int filedesc = index->file_desc;
 
-	int gdepth = ht_info->global_depth;
+	int gdepth = index->global_depth;
 	int key = hash_func(record.id);
 
 	char str_key[32];
 	intToBinary(key, str_key);
 	char* msb = malloc(gdepth * sizeof(char));
 	most_significant_bits(msb, str_key, gdepth);
-	int index = stringToInt(msb);
+	int arraykey = stringToInt(msb);
 
 
-  	BF_Block** hash_table = ht_info->hash_table;
+
+
+  	BF_Block** hash_table = index->hash_table;
 	Bucket_info* buck_info;  
 
 	//no buckets available
 	if(num_buck == 0){
     	/*Allocate initial buckets and their data if first insert*/
 		for(int i = 0; i < ht_size; i ++){
-			BF_Block_Init(&block);
-			CALL_BF(BF_AllocateBlock(filedesc, block));
+			BF_Block_Init(&hash_table[i]);
+			CALL_BF(BF_AllocateBlock(filedesc, hash_table[i]));
 
-			hash_table[i] = block;
 
 			data = BF_Block_GetData(hash_table[i]);
 
 			buck_info = data;
 
-			buck_info->local_depth = ht_info->global_depth;
+			buck_info->local_depth = index->global_depth;
 			buck_info->rec_num = 0;
 
-			ht_info->bucket_num ++;
-			data = BF_Block_GetData(block);
-			printf("block %p  data %p\n\n", block, data);
-
+			index->bucket_num ++;
+			data = BF_Block_GetData(hash_table[i]);
     	}
-		free(msb);
-		data = BF_Block_GetData(hash_table[index]);
+		data = BF_Block_GetData(hash_table[arraykey]);
 
 		Record* rec = (data + sizeof(Bucket_info) + (buck_info->rec_num * sizeof(Record)));	
     	*rec = record;
 
 		buck_info->rec_num ++;
 
+		free(msb);
 		return HT_OK;
 	}
-	data = BF_Block_GetData(hash_table[index]);
-	// printf("data%p\n ", data);
+	data = BF_Block_GetData(hash_table[arraykey]);
 	buck_info = data;
-	
-	printf("\n local depth %d , rec_num %d ", buck_info->local_depth, ht_info->max_rec);
 
-	if(buck_info->rec_num < ht_info->max_rec){
+	if(buck_info->rec_num < index->max_rec){
 		Record* rec = (data + sizeof(Bucket_info) + (buck_info->rec_num * sizeof(Record)));
 		*rec = record;
+		
+		buck_info->rec_num ++;
+		free(msb);
 
-		// *(Record*)rec = record;
-		// printf("\n %ld \n",  sizeof(Bucket_info) + (buck_info->rec_num * sizeof(Record)));
-		// memcpy(rec, &rec, sizeof(rec));
+		return HT_OK;
+	}
+	//double array
+
+
+
+
+	if(buck_info->local_depth  == index->global_depth){
+		printf("HERE\n");
+
+
+		Index_info* newindex;
+
+		BF_Block_Init(&block);
+  		CALL_BF(BF_AllocateBlock(index->file_desc, block));
+
+		data = BF_Block_GetData(block);
+		newindex = data;
+		printf("%p ", data);
+
+		newindex->bucket_num = 0;
+		newindex->size = index->size * 2;
+		newindex->file_desc = index->file_desc;
+		newindex->global_depth = index->global_depth + 1;
+		newindex->max_rec = (BF_BLOCK_SIZE - sizeof(Bucket_info)) / (sizeof(Record) + 1); 
+		newindex->hash_table = malloc(newindex->size * sizeof(BF_Block*));
+		
+		//allocate everything null
+		//for(int i = 0; i < )
+
+
+		// int rehash_key = final_key_index(rec->id, newindex->global_depth - 1);
+
+		for(int i = 0; i < index->size; i ++){
+				data = BF_Block_GetData(index->hash_table[i]);
+				buck_info = data;
+
+			for (int j = 0; j < buck_info->rec_num ; j++){
+				Record* rec = (data + sizeof(Bucket_info) + sizeof(Record) * j);
+
+				// key = hash_func(rec->id);
+				int id = rec->id;
+				int rehash_key = final_key_index(id, newindex->global_depth);
+
+				if(rehash_key % 2 - 1 == 0){
+					if(newindex->hash_table[rehash_key] == NULL && newindex->hash_table[rehash_key + 1] == NULL)
+				}
+				
+				// printf("\n%s   %d  %d \n", rec->name, rec->id, rehash_key);
+
+
+			}
+		}
+
+
+
+		
+		//hash me global - 1 msb
 	}
 
 
-	// BF_Block* block2;
-	// BF_Block_Init(&block2);
-	
-	// BF_GetBlock(filedesc, 1, block2);
-	// BF_Block_Init(&ht_info->hash_table[0]);
+
+
+
+
+
 
 
 
@@ -259,25 +325,16 @@ HT_ErrorCode HT_PrintAllEntries(int indexDesc, int *id) {
 	Index_info* index = open_files[indexDesc]; 	
 	// printf("printf%d ", indexDesc);
 	
-	printf(" %p ", index->hash_table[1]);
-	void* data = BF_Block_GetData(index->hash_table[1]);
-	Record* rec = (data + sizeof(Bucket_info) );
+	void* data = BF_Block_GetData(index->hash_table[0]);
+	Record* rec = (data + sizeof(Bucket_info) + (8 * sizeof(Record)));
 
 
-
-
-	printf("\n\n\n\n\n %s ", rec->name);
 	// printf("%p ", index->hash_table[0]);
 
 
 	///otan ginei close;
 	// BF_Block_SetDirty(index->hash_table[0]);
-	// CALL_BF(BF_UnpinBlock(index->hash_table[0]));
-
-	
-
-
-	
+	// CALL_BF(BF_UnpinBlock(index->hash_table[0]));	
 	
   	return HT_OK;
 }
