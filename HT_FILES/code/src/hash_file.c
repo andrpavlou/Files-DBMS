@@ -253,10 +253,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	//double array
 
 
-
-
 	if(buck_info->local_depth  == index->global_depth){
-		printf("HERE\n");
 
 
 		Index_info* newindex;
@@ -266,7 +263,6 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 		data = BF_Block_GetData(block);
 		newindex = data;
-		printf("%p ", data);
 
 		newindex->bucket_num = 0;
 		newindex->size = index->size * 2;
@@ -276,10 +272,10 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		newindex->hash_table = malloc(newindex->size * sizeof(BF_Block*));
 		
 		//allocate everything null
-		//for(int i = 0; i < )
+		for(int i = 0; i < newindex->size; i++)
+			newindex->hash_table[i] = NULL;
 
 
-		// int rehash_key = final_key_index(rec->id, newindex->global_depth - 1);
 
 		for(int i = 0; i < index->size; i ++){
 				data = BF_Block_GetData(index->hash_table[i]);
@@ -288,29 +284,86 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			for (int j = 0; j < buck_info->rec_num ; j++){
 				Record* rec = (data + sizeof(Bucket_info) + sizeof(Record) * j);
 
-				// key = hash_func(rec->id);
 				int id = rec->id;
 				int rehash_key = final_key_index(id, newindex->global_depth);
+				// printf("rk: %d \n\n\n", rec->id);
 
-				if(rehash_key % 2 - 1 == 0){
-					if(newindex->hash_table[rehash_key] == NULL && newindex->hash_table[rehash_key + 1] == NULL)
+				if(rehash_key % 2  == 0 && newindex->hash_table[rehash_key] == NULL && newindex->hash_table[rehash_key + 1] == NULL){
+					BF_Block_Init(&newindex->hash_table[rehash_key]);
+					BF_Block_Init(&newindex->hash_table[rehash_key + 1]);
+
+					CALL_BF(BF_AllocateBlock(newindex->file_desc, newindex->hash_table[rehash_key]));
+					void* newdata = BF_Block_GetData(newindex->hash_table[rehash_key]);
+
+					Bucket_info* newbucket_info;
+					newbucket_info = newdata;
+					
+					newbucket_info->rec_num = 0;
+					newbucket_info->local_depth = newindex->global_depth - 1;
+
+					newindex->hash_table[rehash_key + 1] =  newindex->hash_table[rehash_key];
+
+					// printf("here\n");
 				}
-				
-				// printf("\n%s   %d  %d \n", rec->name, rec->id, rehash_key);
+				if(rehash_key % 2 - 1 == 0 && newindex->hash_table[rehash_key] == NULL && newindex->hash_table[rehash_key - 1] == NULL){
+					BF_Block_Init(&newindex->hash_table[rehash_key]);
+					BF_Block_Init(&newindex->hash_table[rehash_key - 1]);
+
+					CALL_BF(BF_AllocateBlock(newindex->file_desc, newindex->hash_table[rehash_key]));
+					void* newdata = BF_Block_GetData(newindex->hash_table[rehash_key]);
+
+					Bucket_info* newbucket_info;
+					newbucket_info = newdata;
+					
+					newbucket_info->rec_num = 0;
+					newbucket_info->local_depth = newindex->global_depth - 1;
 
 
+					newindex->hash_table[rehash_key - 1] =  newindex->hash_table[rehash_key];
+
+					// printf("\n %p \n %p ", newindex->hash_table[rehash_key - 1], newindex->hash_table[rehash_key]);
+
+				}				
+				/////////////////////////////////////////
+
+				// printf(" %d ", rehash_key);
+				void* insertdata = BF_Block_GetData(newindex->hash_table[rehash_key]);
+				Bucket_info* buck_info = insertdata;
+
+				Record* newrec = (insertdata + sizeof(Bucket_info) + (buck_info->rec_num * sizeof(Record)));
+				*newrec = *rec;
+
+				buck_info->rec_num ++;
+				// printf(" %d ", buck_info->rec_num);
+				free(msb);
 			}
 		}
 
 
 
+		int lastkey = final_key_index(record.id, newindex->global_depth);
+		/////////split bucket
+		BF_Block* block;
+		BF_Block_Init(&block);
+		block = newindex->hash_table[lastkey];
+		void* insertlast = BF_Block_GetData(newindex->hash_table[lastkey]);
+
+		printf(" not destroyed::%p ", newindex->hash_table[0]);
+		printf("\n not  destroyed::%p ", newindex->hash_table[1]);
+		BF_Block_Destroy(&newindex->hash_table[0]);
+		printf("\n destroyed::%p ", newindex->hash_table[0]);
+		printf("\n destroyed::%p ", newindex->hash_table[1]);
 		
-		//hash me global - 1 msb
+		// void* insertlast = BF_Block_GetData(newindex->hash_table[rehash_key]);
+		// Bucket_info* buck_info = insertlast;
+
+
+		// 	testtestdata = BF_Block_GetData(newindex->hash_table[3]);
+		// 	buck_info = testtestdata;
+		// 	printf(" %d ", buck_info->rec_num);
+
+
 	}
-
-
-
-
 
 
 
