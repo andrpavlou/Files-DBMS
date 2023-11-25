@@ -190,6 +190,7 @@ void printallrecs(Index_info* index){
 		void* test = BF_Block_GetData(index->hash_table[j]);
 		Bucket_info* bucktest = test;
 
+		printf("BLOCK REMAINING RECORDS:%d\n-----------------\n", 8 - bucktest->rec_num);
 		for(int i = 0; i < bucktest->rec_num; i++){
 			Record* rectest = (test + sizeof(Bucket_info) + i * sizeof(Record));
 			printf("BLOCK:%d NAME:%s  ID:%d \n", j, rectest->name, rectest->id);
@@ -219,13 +220,12 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	int arraykey = stringToInt(msb);
 
 
-
-
   	BF_Block** hash_table = index->hash_table;
 	Bucket_info* buck_info;  
 
 	//no buckets available
 	if(num_buck == 0){
+		printf("ID1:%d\n", record.id);
     	/*Allocate initial buckets and their data if first insert*/
 		for(int i = 0; i < ht_size; i ++){
 			BF_Block_Init(&hash_table[i]);
@@ -255,17 +255,24 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	buck_info = data;
 
 	if(buck_info->rec_num < index->max_rec){
+		printf("ID2:%d\n", record.id);
 		Record* rec = (data + sizeof(Bucket_info) + (buck_info->rec_num * sizeof(Record)));
 		*rec = record;
 		
 		buck_info->rec_num ++;
 		free(msb);
 
+
+		if(record.id == 20){
+			printf("\n\n\n\n\n\n");
+			printallrecs(index);
+		}
 		return HT_OK;
 	}
 
 	//double array
 	if(buck_info->local_depth  == index->global_depth){
+		printf("double:ID:%d\n", record.id);
 
 		Index_info* newindex;
 
@@ -279,6 +286,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		newindex->size = index->size * 2;
 		newindex->file_desc = index->file_desc;
 		newindex->global_depth = index->global_depth + 1;
+		newindex->bucket_num = index->bucket_num;
 		newindex->max_rec = (BF_BLOCK_SIZE - sizeof(Bucket_info)) / (sizeof(Record) + 1); 
 		newindex->hash_table = malloc(newindex->size * sizeof(BF_Block*));
 		
@@ -347,8 +355,8 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		Bucket_info* oldblock_info = oldblock_data;
 
 		//split the bucket
-		if(newindex->global_depth > oldblock_info->local_depth){
-
+		if(newindex->global_depth > oldblock_info->local_depth && newindex->max_rec == oldblock_info->rec_num){
+			printf("ID3:%d\n", record.id);
 			BF_Block* new_block;
 
 			BF_Block_Init(&new_block);
@@ -361,7 +369,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			newbucket_info->local_depth = newindex->global_depth;
 			newbucket_info->rec_num = 0;
 			newindex->hash_table[lastkey] = new_block;
-
+			newindex->bucket_num += 1;
 			
 			//remaining recs, should be inserted back to the old bucket(not hashed to the new one)
 			Record remrecs[newindex->max_rec];
@@ -403,15 +411,84 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			}
 			oldblock_info->rec_num = remnum;
 			oldblock_info->local_depth += 1;
+
 						//////destroy old hash////
 
 			open_files[indexDesc] = newindex;
 
-			printallrecs(newindex);
+			// printallrecs(newindex);
+			return HT_OK;
 		}
 	}
 
 
+
+	if(index->global_depth > buck_info->local_depth && index->max_rec == buck_info->rec_num){
+			printf("ID4 SPLIT:%d\n", record.id);
+			BF_Block* new_block;
+
+			BF_Block_Init(&new_block);
+
+			BF_AllocateBlock(index->file_desc, new_block);
+
+			void* newblock_data = BF_Block_GetData(new_block);
+
+			Bucket_info* newbucket_info = newblock_data;
+			newbucket_info->local_depth = index->global_depth;
+			newbucket_info->rec_num = 0;
+			index->hash_table[arraykey] = new_block;
+			index->bucket_num += 1;
+			
+			//remaining recs, should be inserted back to the old bucket(not hashed to the new one)
+			Record remrecs[index->max_rec];
+			int remnum = 0;
+
+			Record* newrec;
+			//Hashes into 2 buckets only (new and the one before the split)
+			for(int i = 0; i < buck_info->rec_num; i++){
+
+				Record* splitrec = (data + sizeof(Bucket_info)) + i * sizeof(Record);
+				int split_hash = final_key_index(splitrec->id, index->global_depth);
+
+				//Goes inside the alone bucked
+				if(split_hash == arraykey){
+					newrec = (newblock_data + sizeof(Bucket_info) + (newbucket_info->rec_num * sizeof(Record)));
+					*newrec = *splitrec;
+					newbucket_info->rec_num ++;
+				}
+				else{
+					remrecs[remnum] = *splitrec;
+					remnum ++;
+				}
+			}
+			//Insert last record
+			newrec = (newblock_data + sizeof(Bucket_info) + (newbucket_info->rec_num * sizeof(Record)));
+			*newrec = record;
+			newbucket_info->rec_num ++;
+
+
+			//Insert the remaining records to the old bucket
+			Record nullrec;
+			for(int i = 0; i < buck_info->rec_num; i++){
+				Record* oldrec = (data + sizeof(Bucket_info) + i * sizeof(Record));
+
+				if(i <= remnum)
+					*oldrec = remrecs[i];
+				else
+					*oldrec = nullrec;
+			}
+			buck_info->rec_num = remnum;
+			buck_info->local_depth += 1;
+
+			printallrecs(index);
+			return HT_OK;
+		}
+	
+	// printf("HEHEHEHHEHE" );
+	void* dat = BF_Block_GetData(index->hash_table[arraykey]);
+	Bucket_info* b;
+	b = dat;
+	printf("%p, numrec:%d", index->hash_table[arraykey], b->rec_num);
 	return HT_OK;
 }
 
