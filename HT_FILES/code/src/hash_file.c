@@ -342,25 +342,94 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 
 		int lastkey = final_key_index(record.id, newindex->global_depth);
-		/////////split bucket
-		BF_Block* block;
-		BF_Block_Init(&block);
-		block = newindex->hash_table[lastkey];
-		void* insertlast = BF_Block_GetData(newindex->hash_table[lastkey]);
 
-		printf(" not destroyed::%p ", newindex->hash_table[0]);
-		printf("\n not  destroyed::%p ", newindex->hash_table[1]);
-		BF_Block_Destroy(&newindex->hash_table[0]);
-		printf("\n destroyed::%p ", newindex->hash_table[0]);
-		printf("\n destroyed::%p ", newindex->hash_table[1]);
+		/////////elegox gia na ginei split to bucket
+		BF_Block* old_block;
+		BF_Block* new_block;
+
+		BF_Block_Init(&old_block);
+		BF_Block_Init(&new_block);
+
+		old_block = newindex->hash_table[lastkey];
+		void* oldblock_data = BF_Block_GetData(old_block);
+		Bucket_info* oldblock_info = oldblock_data;
+
+
+		BF_AllocateBlock(index->file_desc, new_block);
+
+		void* newblock_data = BF_Block_GetData(new_block);
+
+
+
+		Bucket_info* newbucket_info = newblock_data;
+		newbucket_info->local_depth = 1;
+		newbucket_info->rec_num = 0;
+		newindex->hash_table[lastkey] = new_block;
+
+
+
+		//O 0 tha ginei split paei monos tou 
 		
-		// void* insertlast = BF_Block_GetData(newindex->hash_table[rehash_key]);
-		// Bucket_info* buck_info = insertlast;
+		//remaining recs, should be inserted back to the old bucket(not hashed to the new one)
+		Record remrecs[newindex->max_rec];
+		int remnum = 0;
 
 
-		// 	testtestdata = BF_Block_GetData(newindex->hash_table[3]);
-		// 	buck_info = testtestdata;
-		// 	printf(" %d ", buck_info->rec_num);
+
+		printf("ALL RECS BEFORE SPLIT:");
+		//Hashes into 2 buckets only (new and the one before the split)
+		for(int i = 0; i < oldblock_info->rec_num; i++){
+			Record* splitrec = (oldblock_data + sizeof(Bucket_info)) + i * sizeof(Record);
+			printf("\n %s  %d ", splitrec->name, splitrec->id);
+
+
+			int split_hash = final_key_index(splitrec->id, newindex->global_depth);
+			//Goes inside the alone bucked
+
+			if(split_hash == lastkey){
+				Record* newrec = (newblock_data + sizeof(Bucket_info) + (newbucket_info->rec_num * sizeof(Record)));
+				*newrec = *splitrec;
+				newbucket_info->rec_num ++;
+			}
+			else{
+				remrecs[remnum] = *splitrec;
+				remnum ++;
+			}
+		}
+
+
+		printf("\n\nhashed: ");
+		for(int i = 0; i < newbucket_info->rec_num; i++){
+			Record* recs = (newblock_data + sizeof(buck_info) + i * sizeof(Record));
+			printf("\n %s  %d ", recs->name, recs->id);
+		}
+
+
+		printf("\n\nREMAINING :");
+		for(int i = 0; i < remnum; i++){
+			printf("\n %s  %d ", remrecs[i].name, remrecs[i].id);
+		}
+
+		printf("\n\nOLDRECS:");
+		Record nullrec;
+		for(int i = 0; i < oldblock_info->rec_num; i++){
+			Record* oldrec = (oldblock_data + sizeof(Bucket_info) + i * sizeof(Record));
+
+			if(i <= remnum)
+				*oldrec = remrecs[i];
+			else
+				*oldrec = nullrec;
+		}
+
+		oldblock_info->rec_num = remnum;
+		for(int i = 0; i < oldblock_info->rec_num; i++){
+			Record* oldrec = (oldblock_data + sizeof(Bucket_info) + i * sizeof(Record));
+			printf("\n %s  %d ", oldrec->name, oldrec->id);
+		}
+
+		printf(" %d ", oldblock_info->rec_num);
+		void* insertlast = BF_Block_GetData(old_block);
+
 
 
 	}
