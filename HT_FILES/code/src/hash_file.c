@@ -430,13 +430,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		printf(" %d ", oldblock_info->rec_num);
 		void* insertlast = BF_Block_GetData(old_block);
 
-
-
 	}
-
-
-
-
 
 
 	return HT_OK;
