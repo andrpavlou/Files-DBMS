@@ -76,7 +76,7 @@ int main() {
   int r;
   printf("Insert Entries\n");
   //257
-  for (int id = 0; id < 257; ++id) {
+  for (int id = 0; id < 307; ++id) {
     // create a record
     record.id = id;
     r = rand() % 12;
@@ -91,10 +91,10 @@ int main() {
 
   printf("RUN PrintAllEntries\n");
   int id = rand() % RECORDS_NUM;
-  // CALL_OR_DIE(HT_PrintAllEntries(indexDesc, &id));
+  CALL_OR_DIE(HT_PrintAllEntries(indexDesc, &id));
   // CALL_OR_DIE(HT_PrintAllEntries(indexDesc, NULL));
 
 
   // CALL_OR_DIE(HT_CloseFile(indexDesc));
-  BF_Close();
+  // BF_Close();
 }
