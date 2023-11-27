@@ -76,7 +76,7 @@ int main() {
   int r;
   printf("Insert Entries\n");
   //257
-  for (int id = 0; id < 307; ++id) {
+  for (int id = 0; id < 15; ++id) {
     // create a record
     record.id = id;
     r = rand() % 12;
