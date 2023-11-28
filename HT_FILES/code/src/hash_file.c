@@ -47,14 +47,14 @@ HT_ErrorCode HT_Init(){
 
 
 //https://web.archive.org/web/20071223173210/http://www.concentric.net/~Ttwang/tech/inthash.htm
-unsigned int hash_func(unsigned long key) {
-key = (~key) + (key << 21); // key = (key << 21) - key - 1;
-  key = key ^ (key >> 24);
-  key = (key + (key << 3)) + (key << 8); // key * 265
-  key = key ^ (key >> 14);
-  key = (key + (key << 2)) + (key << 4); // key * 21
-  key = key ^ (key >> 28);
-  key = key + (key << 31);
+unsigned int hash_func(unsigned int key) {
+
+  int c2=0x27d4eb2d; // a prime or an odd constant
+  key = (key ^ 61) ^ (key >> 16);
+  key = key + (key < 3);
+  key = key ^ (key >> 4);
+  key = key * c2;
+  key = key ^ (key >> 15);
   return key;
 }
 
@@ -225,6 +225,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
   	filedesc = index->file_desc;
 
 	arraykey = final_key_index(record.id, index->global_depth);
+
 	
   	void* data;
 
@@ -267,6 +268,8 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		return HT_OK;
 	}
 
+
+	
 	//There are already blocks alocated.
 	BF_Block_Init(&index->hash_table[arraykey]);
 	CALL_BF(BF_GetBlock(index->file_desc, index->block_ids[arraykey], index->hash_table[arraykey]));
@@ -274,15 +277,17 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 	buck_info = data;
 	if(buck_info->rec_num < index->max_rec){
-		
+
+		// printf("\n %d %p %d ", arraykey, index->hash_table[arraykey], record.id);
 		Record* rec = (data + sizeof(Bucket_info) + (buck_info->rec_num * sizeof(Record)));
 
 		*rec = record;		
 		buck_info->rec_num ++;
-		if(buck_info->rec_num == 1){
-			printf("A\n");
-			BF_Block_SetDirty(index->hash_table[arraykey]);
-			BF_UnpinBlock(index->hash_table[arraykey]);
+
+		if(buck_info->rec_num == 8 && index->global_depth == buck_info->local_depth){
+			// BF_Block_SetDirty(index->hash_table[arraykey]);
+			// BF_UnpinBlock(index->hash_table[arraykey]);
+			// BF_Block_Destroy(&index->hash_table[arraykey]);
 		}
 		
 		return HT_OK;
@@ -290,10 +295,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 	//Splits without double
 	if(index->global_depth > buck_info->local_depth && index->max_rec == buck_info->rec_num){
-		// if(record.id == 306){
-		// 	printf("HERE\n");
-		// 	return HT_OK;
-		// }
+		
 			BF_Block* new_block;
 
 			BF_Block_Init(&new_block);
@@ -339,10 +341,10 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			*newrec = record;
 			newbucket_info->rec_num ++;
 
-			if(newbucket_info->rec_num == 1){
+			if(newbucket_info->rec_num == 8){
 				printf("B");
-				BF_Block_SetDirty(index->hash_table[arraykey]);
-				CALL_BF(BF_UnpinBlock(index->hash_table[arraykey]));
+				// BF_Block_SetDirty(index->hash_table[arraykey]);
+				// CALL_BF(BF_UnpinBlock(index->hash_table[arraykey]));
 			}
 
 			//Insert the remaining records to the old bucket
@@ -356,6 +358,13 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 					*oldrec = nullrec;
 			}
 			buck_info->rec_num = remnum;
+
+			if(buck_info->rec_num == 8){
+				printf("B");
+				// BF_Block_SetDirty(index->hash_table[arraykey]);
+				// CALL_BF(BF_UnpinBlock(index->hash_table[arraykey]));
+			}
+
 			buck_info->local_depth += 1;
 
 			return HT_OK;
@@ -364,10 +373,16 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	//double array
 	if(buck_info->local_depth  == index->global_depth){
 
-		if(record.id == 306){
-			printf("HERE\n");
-			// return HT_OK;
-		}
+
+		// for(int z = 0; z < index->size; z++){
+		// 		BF_Block_Init(&index->hash_table[z]);
+		// 		BF_GetBlock(index->file_desc ,index->block_ids[z], index->hash_table[z]);
+		// 		printf("z:%d , index:%d ", z, index->block_ids[z]);
+		// 		BF_Block_SetDirty(index->hash_table[z]);
+		// 		CALL_BF(BF_UnpinBlock(index->hash_table[z]));
+			// }
+
+
 		
 		BF_Block* block;
 
@@ -396,31 +411,18 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			newindex->block_ids[i] = -1;
 		}
 
-		// int skip = 0;
-		// for(int i = 0; i < index->size; i++){
-		// 	BF_Block_Init(&index->hash_table[i]);
-		// 	BF_GetBlock(index->file_desc, index->block_ids[i], index->hash_table[i]);
-		// 	void* indexdata = BF_Block_GetData(index->hash_table[i]);
-		// 	Bucket_info* buck_data = indexdata;
-
-		// 	if(buck_data->local_depth < index->global_depth)
-		// 		skip = 1;
-
-		// 	// BF_Block_SetDirty(index->hash_table[i]);
-		// 	// BF_UnpinBlock(index->hash_table[i]);
-
-		// 	if(skip == 1){
-		// 		i += 1;
-		// 		skip == 0;
-		// 	}
-		// }
+		
 
 		for(int i = 0; i < index->size; i ++){
+
+			
 				BF_Block_Init(&index->hash_table[i]);
 				BF_GetBlock(index->file_desc, index->block_ids[i], index->hash_table[i]);
 
+			
 				data = BF_Block_GetData(index->hash_table[i]);
 				buck_info = data;
+
 
 			for (int j = 0; j < buck_info->rec_num ; j++){
 				Record* rec = (data + sizeof(Bucket_info) + sizeof(Record) * j);
@@ -485,15 +487,25 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 					Record* newrec = (insertdata + sizeof(Bucket_info) + (buck_info->rec_num * sizeof(Record)));
 					*newrec = *rec;
 					buck_info->rec_num ++;
-				
-					if(buck_info->rec_num == 1){
-						printf("C");
-						BF_Block_SetDirty(newindex->hash_table[rehash_key]);
-						CALL_BF(BF_UnpinBlock(newindex->hash_table[rehash_key]));
-					}
+				}
+				else{
+					printf("record: %d ", rec->id);
+					printf("MOREOEOAWODOAW\n");
+				}
+
+				if(buck_info->rec_num == 8){
+						printf("itss 888s");
+						// BF_Block_SetDirty(newindex->hash_table[rehash_key]);
+						// CALL_BF(BF_UnpinBlock(newindex->hash_table[rehash_key]));
 				}
 			}
+			if(i > 1){	
+				BF_Block_SetDirty(index->hash_table[i - 1]);
+				CALL_BF(BF_UnpinBlock(index->hash_table[i - 1]));
+			}
 		}
+		
+		
 
 		int lastkey = final_key_index(record.id, newindex->global_depth);
 		BF_Block_Init(&newindex->hash_table[lastkey]);
@@ -507,15 +519,12 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			*lastrec = record;
 			oldblock_info->rec_num++;
 
-			if(oldblock_info->rec_num == 1){
-				BF_Block_Init(&newindex->hash_table[lastkey]);
-				BF_GetBlock(newindex->file_desc, newindex->block_ids[lastkey], newindex->hash_table[lastkey]);
-			}
-
-			// for(int z = 0; z < index->size; z++){
-			// 	BF_Block_SetDirty(index->hash_table[z]);
-			// 	CALL_BF(BF_UnpinBlock(index->hash_table[z]));
+			// if(oldblock_info->rec_num == 1){
+				// BF_Block_SetDirty(newindex->hash_table[lastkey]);
+				// BF_UnpinBlock(newindex->hash_table[lastkey]);
 			// }
+
+			
 			
 			free(index);
 
@@ -567,11 +576,11 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			newrec = (newblock_data + sizeof(Bucket_info) + (newbucket_info->rec_num * sizeof(Record)));
 			*newrec = record;
 			newbucket_info->rec_num ++;
-			if(newbucket_info->rec_num == 1){
+			// if(newbucket_info->rec_num == 8){
 				printf("D");
-				BF_Block_SetDirty(newindex->hash_table[lastkey]);
-				BF_UnpinBlock(newindex->hash_table[lastkey]);
-			}
+				// BF_Block_SetDirty(newindex->hash_table[lastkey]);
+				// BF_UnpinBlock(newindex->hash_table[lastkey]);
+			// }
 
 			//Insert the remaining records to the old bucket
 			Record nullrec;
@@ -590,11 +599,17 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 			/////TODO:destroy old hash////
 
-			for(int z = 0; z < index->bucket_num; z++){
-				BF_Block_SetDirty(index->hash_table[z]);
-				CALL_BF(BF_UnpinBlock(index->hash_table[z]));
-			}
-			
+			// for(int z = 0; z < index->bucket_num; z++){
+			// 	BF_Block_SetDirty(index->hash_table[z]);
+			// 	CALL_BF(BF_UnpinBlock(index->hash_table[z]));
+			// }
+
+			int last = index->size;
+			BF_Block_SetDirty(index->hash_table[last - 1]);
+			CALL_BF(BF_UnpinBlock(index->hash_table[last - 1]));
+			BF_Block_SetDirty(index->hash_table[0]);
+			CALL_BF(BF_UnpinBlock(index->hash_table[0]));
+
 
 			free(index);
 
