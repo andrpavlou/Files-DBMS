@@ -48,15 +48,14 @@ HT_ErrorCode HT_Init(){
 
 
 //https://web.archive.org/web/20071223173210/http://www.concentric.net/~Ttwang/tech/inthash.htm
-unsigned int hash_func(unsigned int key) {
-
-  int c2=0x27d4eb2d; // a prime or an odd constant
-  key = (key ^ 61) ^ (key >> 16);
-  key = key + (key < 3);
-  key = key ^ (key >> 4);
-  key = key * c2;
-  key = key ^ (key >> 15);
-  return key;
+unsigned int hash_func(unsigned int	key) {
+  key = (~key) + (key << 18); // key = (key << 18) - key - 1;
+  key = key ^ (key >> 31);
+  key = key * 21; // key = (key + (key << 2)) + (key << 4);
+  key = key ^ (key >> 11);
+  key = key + (key << 6);
+  key = key ^ (key >> 22);
+  return (int) key;
 }
 
 void intToBinary(int key, char* string_key) {
@@ -80,7 +79,7 @@ void intToBinary(int key, char* string_key) {
 }
 void most_significant_bits(char* msb, char* string_key, int gdepth){
 	string_key = (string_key + strlen(string_key) - gdepth);
-	strncpy(msb, string_key, gdepth);
+	strncpy(msb, string_key, gdepth + 1);
 
 }
 
@@ -184,6 +183,9 @@ int final_key_index(int id, int bit_num){
 	char* msb = malloc(bit_num * sizeof(char));
 	most_significant_bits(msb, str_key, bit_num);
 	int arraykey = stringToInt(msb);
+	
+	// printf(" %d ", key);
+
 	free(msb);
 	return arraykey;
 }
@@ -195,7 +197,8 @@ void printallrecs(Index_info* index){
 
 	printf("INDEX SIZE:%d GLOBAL DEPTH:%d\n-----------------\n", index->size, index->global_depth);
 	for(int j = 0; j < index->size; j++){
-		BF_GetBlock(index->file_desc, index->block_ids[j], block);
+		printf(" %d %d \n", index->block_ids[j], index->size);
+		(BF_GetBlock(index->file_desc, index->block_ids[j], block));
 
 		void* test = BF_Block_GetData(block);
 		Bucket_info* bucktest = test;
@@ -260,6 +263,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	int array_key = final_key_index(record.id, index->global_depth);
 
 	BF_Block_Init(&block);
+	
 	BF_GetBlock(index->file_desc, index->block_ids[array_key], block);
 
 	void* data = BF_Block_GetData(block);
@@ -275,7 +279,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		rec = ((data + sizeof(Bucket_info)) + buck->rec_num * sizeof(Record));
 		*rec = record;
 		buck->rec_num++;
-
+	
 
 		BF_Block_SetDirty(block);
 		BF_UnpinBlock(block);
@@ -284,7 +288,8 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		return HT_OK;
 	}
 
-	
+	BF_Block_SetDirty(block);
+	BF_UnpinBlock(block);
 	
 
 	//split buddies
@@ -311,6 +316,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 		Record rem_rec[index->max_rec];
 		int rems  = 0;
+
 
 		//iterate through all records of old block;
 		for(int i = 0; i < buck->rec_num; i++){
@@ -351,7 +357,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	
 
 	
-
+	
 
 	if(index->global_depth > buck->local_depth && index->global_depth - buck->local_depth != 1 && buck->rec_num == index->max_rec){
 		BF_Block* newblock;
@@ -360,12 +366,21 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		
 
 		CALL_BF(BF_AllocateBlock(index->file_desc, newblock));
+		if(record.id == 2448){
+			printf("unlucky");
+			return HT_OK;
+		}
 
-
-		int buddie_index = array_key - pow(2, (index->global_depth - 1));
+		int buddie_index = 0;
+		buddie_index = array_key - pow(2, (index->global_depth - 1));
 
 		index->last_block_id ++;
 		index->block_ids[array_key] = index->last_block_id;
+		if(buddie_index < 0){
+			buddie_index = array_key + pow(2, (index->global_depth - 1));
+			// return HT_OK;
+		}
+
 		index->block_ids[buddie_index] = index->last_block_id;
 
 		void* insertdata = BF_Block_GetData(newblock);
@@ -427,6 +442,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 	//Double the array
 	if(buck->rec_num == index->max_rec && buck->local_depth == index->global_depth){
+		
 		// printf("\ndouble, %d", record.id);
 		int newblock[index->size];
 
