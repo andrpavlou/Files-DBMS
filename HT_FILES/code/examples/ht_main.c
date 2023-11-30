@@ -95,6 +95,6 @@ int main() {
   // CALL_OR_DIE(HT_PrintAllEntries(indexDesc, NULL));
 
 
-  // CALL_OR_DIE(HT_CloseFile(indexDesc));
-  // BF_Close();
+  CALL_OR_DIE(HT_CloseFile(indexDesc));
+  BF_Close();
 }

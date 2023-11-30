@@ -237,8 +237,6 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 			bucket->rec_num = 0;
 			bucket->local_depth = index->global_depth;
-
-
 		}
 		BF_Block_Destroy(&block);
 		int arraykey = final_key_index(record.id, index->global_depth);
@@ -262,7 +260,6 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 	int array_key = final_key_index(record.id, index->global_depth);
 
-	BF_Block_Init(&block);
 	
 	BF_GetBlock(index->file_desc, index->block_ids[array_key], block);
 
@@ -290,6 +287,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 	BF_Block_SetDirty(block);
 	BF_UnpinBlock(block);
+	BF_Block_Destroy(&block);
 	
 
 	//split buddies
@@ -348,28 +346,19 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 			*oldrec = rem_rec[i];
 			buck->rec_num ++;
 		}
-		// BF_Block_Destroy(&newblock);
 		HT_InsertEntry(indexDesc, record);
 		BF_Block_SetDirty(newblock);
 		BF_UnpinBlock(newblock);
+		BF_Block_Destroy(&newblock);
 		return HT_OK;
 	}
-	
-
-	
-	
 
 	if(index->global_depth > buck->local_depth && index->global_depth - buck->local_depth != 1 && buck->rec_num == index->max_rec){
 		BF_Block* newblock;
 		BF_Block_Init(&newblock);
 	
-		
 
 		CALL_BF(BF_AllocateBlock(index->file_desc, newblock));
-		if(record.id == 2448){
-			printf("unlucky");
-			return HT_OK;
-		}
 
 		int buddie_index = 0;
 		buddie_index = array_key - pow(2, (index->global_depth - 1));
@@ -427,19 +416,14 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		}
 
 		
-
-		// BF_Block_Destroy(&newblock);
 		HT_InsertEntry(indexDesc, record);
 		BF_Block_SetDirty(newblock);
 		BF_UnpinBlock(newblock);
-		
+		BF_Block_Destroy(&newblock);
 
 		return HT_OK;
 	}
-
-
 	
-
 	//Double the array
 	if(buck->rec_num == index->max_rec && buck->local_depth == index->global_depth){
 		
@@ -467,13 +451,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		HT_InsertEntry(indexDesc, record);
 		return HT_OK;
 	}
-
-
-	printf("------ERROROROROROROROROOROR");
 	return HT_OK;
-
-
-
 }
 
 HT_ErrorCode HT_PrintAllEntries(int indexDesc, int *id) {
