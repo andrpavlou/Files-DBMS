@@ -27,13 +27,11 @@ typedef struct{
   int max_rec;
   int last_block_id;
   int* block_ids;
-  BF_Block** hash_table;
 }Index_info;
 
 typedef struct{
   int local_depth;
   int rec_num;
-  int unpin;
 }Bucket_info;
 
 
@@ -80,7 +78,6 @@ void intToBinary(int key, char* string_key) {
 void most_significant_bits(char* msb, char* string_key, int gdepth){
 	string_key = (string_key + strlen(string_key) - gdepth);
 	strncpy(msb, string_key, gdepth + 1);
-
 }
 
 int stringToInt(char* msb){
@@ -110,6 +107,9 @@ HT_ErrorCode HT_CreateIndex(const char *filename, int depth) {
 
   	void* data;
 	data = BF_Block_GetData(block);
+	BF_Block_SetDirty(block);
+	BF_UnpinBlock(block);
+
   	int power = pow(2, depth);
 
   	index = data;
@@ -117,16 +117,13 @@ HT_ErrorCode HT_CreateIndex(const char *filename, int depth) {
 	index->file_desc = file_desc;
 	index->bucket_num = 0;
 	index->last_block_id = 0;
-  	index->max_rec = (BF_BLOCK_SIZE - sizeof(Bucket_info)) / (sizeof(Record) + 1); //prepei na arxikopoihthei alliws
+  	index->max_rec = (BF_BLOCK_SIZE - sizeof(Bucket_info)) / (sizeof(Record) + 1);
 
 	index->size = power;
 
-  	index->hash_table = malloc(index->size * sizeof(BF_Block*));
 	index->block_ids = malloc(index->size * sizeof(int));
 
   	BF_Block_Destroy(&block);
-
-  	// BF_Close(file_desc);
 
 	return HT_OK;
 }
@@ -135,10 +132,8 @@ HT_ErrorCode HT_OpenIndex(const char *fileName, int *indexDesc){
     BF_Block* block;
     BF_Block_Init(&block);
 
-
     int file_desc;
     CALL_BF(BF_OpenFile(fileName, &file_desc));
-    
     CALL_BF(BF_GetBlock(file_desc, 0, block));
     void* data;
 
@@ -160,15 +155,20 @@ HT_ErrorCode HT_OpenIndex(const char *fileName, int *indexDesc){
 }
 
 HT_ErrorCode HT_CloseFile(int indexDesc) {
-	//insert code here
-	///////////////////////////// set_dirty!?!?!??!?!?!?!
-
 	Index_info* index;
+	BF_Block* block;
+	BF_Block_Init(&block);
+
 	index = open_files[indexDesc];
 
-	open_files[indexDesc] = NULL;
+	for(int i = 0; i < index->size; i++){
+		BF_GetBlock(index->file_desc, index->block_ids[i], block);
+		BF_Block_SetDirty(block);
+		BF_UnpinBlock(block);
+	}
 
-	// free(index->hash_table);/////// seg fault
+	free(index->block_ids);
+	BF_Block_Destroy(&block);
 	
 	BF_CloseFile(index->file_desc);
 
@@ -184,7 +184,6 @@ int final_key_index(int id, int bit_num){
 	most_significant_bits(msb, str_key, bit_num);
 	int arraykey = stringToInt(msb);
 	
-	// printf(" %d ", key);
 
 	free(msb);
 	return arraykey;
@@ -457,7 +456,6 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 HT_ErrorCode HT_PrintAllEntries(int indexDesc, int *id) {
 
 	Index_info* index = open_files[indexDesc]; 	
-	//block 13;
 	printallrecs(index);
 	
 	
