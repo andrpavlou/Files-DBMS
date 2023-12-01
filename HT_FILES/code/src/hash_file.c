@@ -74,7 +74,7 @@ void intToBinary(int key, char* string_key) {
 	free(temp);
 	free(result);
 }
-void most_significant_bits(char* msb, char* string_key, int gdepth){
+void least_significant_bits(char* msb, char* string_key, int gdepth){
 	string_key = (string_key + strlen(string_key) - gdepth);
 	strncpy(msb, string_key, gdepth + 1);
 }
@@ -134,22 +134,22 @@ HT_ErrorCode HT_OpenIndex(const char *fileName, int *indexDesc){
     int file_desc;
     CALL_BF(BF_OpenFile(fileName, &file_desc));
     CALL_BF(BF_GetBlock(file_desc, 0, block));
-    void* data;
-
-    data = BF_Block_GetData(block);
+	
+    void* header = BF_Block_GetData(block);
     Index_info* info;
-    info = data;
+    info = header;
+
+	BF_Block_Destroy(&block);
+
 	info->file_desc = file_desc;
 
 	for(int i = 0; i < MAX_OPEN_FILES; i++){
 		if(open_files[i] == NULL){
 			open_files[i] = info;
 			*indexDesc = i;
-			BF_Block_Destroy(&block);
 			return HT_OK;
 		}
 	}
-	BF_Block_Destroy(&block);
     return HT_ERROR;
 }
 
@@ -180,7 +180,7 @@ int final_key_index(int id, int bit_num){
 	char str_key[32];
 	intToBinary(key, str_key);
 	char* msb = malloc(bit_num * sizeof(char));
-	most_significant_bits(msb, str_key, bit_num);
+	least_significant_bits(msb, str_key, bit_num);
 	int arraykey = stringToInt(msb);
 	
 
@@ -460,14 +460,13 @@ HT_ErrorCode HT_PrintAllEntries(int indexDesc, int *id) {
     void* data;
     int error = -1;
 
-    BF_Block_Init(&block);
     
     if(id == NULL){
-        error = 0;
         printallrecs(index);
         return HT_OK;
     }
 
+    BF_Block_Init(&block);
     int hash_key = final_key_index(*id ,index->global_depth);
     int block_id = index->block_ids[hash_key];
 
@@ -477,6 +476,7 @@ HT_ErrorCode HT_PrintAllEntries(int indexDesc, int *id) {
 
 	BF_Block_SetDirty(block);
 	BF_UnpinBlock(block);
+	BF_Block_Destroy(&block);
 
 
     for(int i = 0; i < bucket_info->rec_num ; i++){     
@@ -486,7 +486,6 @@ HT_ErrorCode HT_PrintAllEntries(int indexDesc, int *id) {
             error = 0;
         }
     }
-    BF_Block_Destroy(&block);
 
     if(!error)
         return HT_OK;
@@ -511,7 +510,7 @@ HT_ErrorCode HashStatistics(char* filename){
     index_info = open_files[0];
 
     printf("\n----------STATISTICS----------\n");
-    printf("FILE %s HAS %d BLOCKS\n", filename, index_info->bucket_num);
+    printf("FILE %s HAS %d BLOCKS/BUCKETS\n", filename, index_info->bucket_num);
 
     int max = -1;
     int min = index_info->max_rec + 1;
@@ -537,7 +536,7 @@ HT_ErrorCode HashStatistics(char* filename){
     }
     float avg = (float)(sum) / (index_info->bucket_num);
 
-    printf("MAXIMUM  NUMBER OF RECORDS: %d\n",max);
+    printf("MAXIMUM NUMBER OF RECORDS: %d\n",max);
     printf("MIN NUMBER OF RECORDS: %d\n",min);
     printf("NUMBER OF RECORDS PER BUCKET: %0.2f\n", avg);
     printf("-------------------------------\n");
