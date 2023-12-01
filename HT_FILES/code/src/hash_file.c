@@ -39,7 +39,6 @@ Index_info* open_files[MAX_OPEN_FILES];
 
 
 HT_ErrorCode HT_Init(){
-  //insert code here
   
 	return HT_OK;
 }
@@ -193,17 +192,16 @@ void printallrecs(Index_info* index){
 	
 	BF_Block* block;
 	BF_Block_Init(&block);
-
+	int sum = 0;
 	printf("INDEX SIZE:%d GLOBAL DEPTH:%d\n-----------------\n", index->size, index->global_depth);
-	for(int j = 0; j < index->size; j++){
-		printf(" %d %d \n", index->block_ids[j], index->size);
-		(BF_GetBlock(index->file_desc, index->block_ids[j], block));
+	for(int j = 1; j <= index->bucket_num; j++){
+		(BF_GetBlock(index->file_desc, j, block));
 
 		void* test = BF_Block_GetData(block);
 		Bucket_info* bucktest = test;
 		BF_Block_SetDirty(block);
 		BF_UnpinBlock(block);
-
+		sum += bucktest->rec_num;
 		printf("REMAINING RECORDS:%d\nLOCAL DEPTH:%d\n-----------------\n", 8 - bucktest->rec_num, bucktest->local_depth);
 		for(int i = 0; i < bucktest->rec_num; i++){
 			Record* rectest = (test + sizeof(Bucket_info) + i * sizeof(Record));
@@ -223,8 +221,8 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	if(index->bucket_num == 0){
 		for(int i = 0; i < index->size; i++){
 			BF_AllocateBlock(index->file_desc, block);
-
 			index->bucket_num ++;
+
 			index->last_block_id ++;
 			index->block_ids[i] = index->last_block_id;
 
@@ -256,7 +254,6 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		return HT_OK;
 	}
 
-
 	int array_key = final_key_index(record.id, index->global_depth);
 
 	
@@ -264,13 +261,9 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 
 	void* data = BF_Block_GetData(block);
 	Bucket_info* buck = data;
-
-
-
 	
 	if(buck->rec_num < index->max_rec){
-		
-		
+			
 		Record* rec;
 		rec = ((data + sizeof(Bucket_info)) + buck->rec_num * sizeof(Record));
 		*rec = record;
@@ -294,6 +287,7 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		BF_Block* newblock;
 		BF_Block_Init(&newblock);
 		CALL_BF(BF_AllocateBlock(index->file_desc, newblock));
+		index->bucket_num ++;
 			
 
 		void* insertdata = BF_Block_GetData(newblock);
@@ -358,16 +352,17 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 	
 
 		CALL_BF(BF_AllocateBlock(index->file_desc, newblock));
+		index->bucket_num ++;
 
 		int buddie_index = 0;
 		buddie_index = array_key - pow(2, (index->global_depth - 1));
 
 		index->last_block_id ++;
 		index->block_ids[array_key] = index->last_block_id;
-		if(buddie_index < 0){
+
+		if(buddie_index < 0)
 			buddie_index = array_key + pow(2, (index->global_depth - 1));
-			// return HT_OK;
-		}
+
 
 		index->block_ids[buddie_index] = index->last_block_id;
 
@@ -450,14 +445,103 @@ HT_ErrorCode HT_InsertEntry(int indexDesc, Record record) {
 		HT_InsertEntry(indexDesc, record);
 		return HT_OK;
 	}
-	return HT_OK;
+
+	if(record.id = 779)
+		printf("errorororo");
+	return -1;
 }
 
 HT_ErrorCode HT_PrintAllEntries(int indexDesc, int *id) {
 
-	Index_info* index = open_files[indexDesc]; 	
-	printallrecs(index);
-	
-	
-  	return HT_OK;
+    Index_info* index = open_files[indexDesc]; 
+    BF_Block* block;
+    Bucket_info* bucket_info;
+    Record* rec;
+    void* data;
+    int error = -1;
+
+    BF_Block_Init(&block);
+    
+    if(id == NULL){
+        error = 0;
+        printallrecs(index);
+        return HT_OK;
+    }
+
+    int hash_key = final_key_index(*id ,index->global_depth);
+    int block_id = index->block_ids[hash_key];
+
+    CALL_BF( BF_GetBlock(index->file_desc, block_id, block));
+    data = BF_Block_GetData(block);
+    bucket_info = data;
+
+	BF_Block_SetDirty(block);
+	BF_UnpinBlock(block);
+
+
+    for(int i = 0; i < bucket_info->rec_num ; i++){     
+        rec = (data + sizeof(Bucket_info) + i * sizeof(Record));
+        if( rec->id == *id ){
+            printf("NAME:%s ARRAY:%d SURNAME:%s ID:%d CITY:%s\n",rec->name,i, rec->surname, rec->id, rec->city);
+            error = 0;
+        }
+    }
+    BF_Block_Destroy(&block);
+
+    if(!error)
+        return HT_OK;
+    
+    printf("NO RECORD WITH ID = %d\n",*id);
+    return error;
+    
+
+}
+
+HT_ErrorCode HashStatistics(char* filename){
+
+    Index_info* index_info;
+    Bucket_info* bucket_info;
+    BF_Block* block;
+    void* data;
+    int index_desc;
+
+    BF_Block_Init(&block);
+    CALL_BF(HT_OpenIndex(filename, &index_desc));
+
+    index_info = open_files[0];
+
+    printf("\n----------STATISTICS----------\n");
+    printf("FILE %s HAS %d BLOCKS\n", filename, index_info->bucket_num);
+
+    int max = -1;
+    int min = index_info->max_rec + 1;
+    int sum = 0;
+
+    for(int i = 1; i <= index_info->bucket_num ; i ++){
+        
+        BF_GetBlock(index_desc, i, block);      
+        data = BF_Block_GetData(block);
+        bucket_info = data;
+
+        BF_Block_SetDirty(block);
+        BF_UnpinBlock(block);
+
+        sum += bucket_info->rec_num;
+
+        if (bucket_info->rec_num <= min)
+            min = bucket_info->rec_num; 
+
+        if(bucket_info->rec_num >= max)
+            max = bucket_info->rec_num;
+
+    }
+    float avg = (float)(sum) / (index_info->bucket_num);
+
+    printf("MAXIMUM  NUMBER OF RECORDS: %d\n",max);
+    printf("MIN NUMBER OF RECORDS: %d\n",min);
+    printf("NUMBER OF RECORDS PER BUCKET: %0.2f\n", avg);
+    printf("-------------------------------\n");
+
+    BF_Block_Destroy(&block);
+    return HT_OK;
 }
