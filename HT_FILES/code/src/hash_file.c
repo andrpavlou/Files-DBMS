@@ -4,8 +4,6 @@
 #define MAX_OPEN_FILES 20
 #define HT_ERROR -1
 
-
-
 #define CALL_BF(call)       \
 {                           \
   BF_ErrorCode code = call; \
