@@ -27,7 +27,6 @@ HT_ErrorCode HT_Init(int file_desc, int depth){
 
   	void* data;
 	data = BF_Block_GetData(block);
-
   	index = data;
 	
 	index->bucket_num = 0;
