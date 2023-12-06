@@ -17,21 +17,10 @@
 //Stores all the indexes of the files that have been opened
 Index_info* open_files[MAX_OPEN_FILES];
 
-HT_ErrorCode HT_Init(){
-  
-	return HT_OK;
-}
-
-
-HT_ErrorCode HT_CreateIndex(const char *filename, int depth) {
-	int file_desc;
-  	BF_Block* block;
+HT_ErrorCode HT_Init(int file_desc, int depth){
+	BF_Block* block;
   	Index_info* index;
-
-	CALL_BF(BF_CreateFile(filename)); 
-	CALL_BF(BF_OpenFile(filename, &file_desc));
-
-
+	
 	//Allocate the first block of the file which will store the metadata of the file
   	BF_Block_Init(&block);
   	CALL_BF(BF_AllocateBlock(file_desc, block));
@@ -54,6 +43,17 @@ HT_ErrorCode HT_CreateIndex(const char *filename, int depth) {
 	BF_Block_SetDirty(block);
 	BF_UnpinBlock(block);
   	BF_Block_Destroy(&block);
+
+	return HT_OK;
+}
+
+
+HT_ErrorCode HT_CreateIndex(const char *filename, int depth) {
+	int file_desc;
+
+	CALL_BF(BF_CreateFile(filename)); 
+	CALL_BF(BF_OpenFile(filename, &file_desc));
+	HT_Init(file_desc, GLOBAL_DEPTH);
 
 	return HT_OK;
 }

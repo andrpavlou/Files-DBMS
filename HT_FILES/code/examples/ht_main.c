@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
 #include "bf.h"
 #include "hash_file.h"
 
-#define RECORDS_NUM 1000 // you can change it if you want
-#define GLOBAL_DEPT 1 // you can change it if you want
+#define RECORDS_NUM 10000 // you can change it if you want
 
 #define FILE_NAME "data.db"
 
@@ -65,10 +65,10 @@ const char* cities[] = {
 int main() {
   BF_Init(LRU);
   
-  CALL_OR_DIE(HT_Init());
+  // CALL_OR_DIE(HT_Init());
 
   int indexDesc;
-  CALL_OR_DIE(HT_CreateIndex(FILE_NAME, GLOBAL_DEPT));
+  CALL_OR_DIE(HT_CreateIndex(FILE_NAME, GLOBAL_DEPTH));
   CALL_OR_DIE(HT_OpenIndex(FILE_NAME, &indexDesc)); 
 
   Record record;

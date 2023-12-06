@@ -8,6 +8,9 @@
 #include <string.h>
 #include <math.h>
 
+#define GLOBAL_DEPTH 1 // you can change it if you want
+
+
 
 typedef enum HT_ErrorCode {
   HT_OK,
@@ -43,7 +46,7 @@ HT_ErrorCode HashStatistics(char* filename);
  * Η συνάρτηση HT_Init χρησιμοποιείται για την αρχικοποίηση κάποιον δομών που μπορεί να χρειαστείτε. 
  * Σε περίπτωση που εκτελεστεί επιτυχώς, επιστρέφεται HT_OK, ενώ σε διαφορετική περίπτωση κωδικός λάθους.
  */
-HT_ErrorCode HT_Init();
+HT_ErrorCode HT_Init(int file_desc, int depth);
 
 /*
  * Η συνάρτηση HT_CreateIndex χρησιμοποιείται για τη δημιουργία και κατάλληλη αρχικοποίηση ενός άδειου αρχείου κατακερματισμού με όνομα fileName. 

@@ -96,6 +96,7 @@ void printallrecs(Index_info* index){
 		}	
 		printf("\n");
 	}
+	
 	BF_Block_Destroy(&block);	
 }
 
