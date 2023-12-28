@@ -25,8 +25,18 @@ int main() {
   //
   BF_Init(LRU);
   int file_desc = createAndPopulateHeapFile(FILE_NAME);
-  sortPhase(file_desc,chunkSize);
-  mergePhases(file_desc,chunkSize,bWay,&fileIterator);
+  // sortPhase(file_desc,chunkSize);
+  CHUNK chunk;
+  CHUNK_Iterator chunk_iter;
+  chunk_iter.blocksInChunk = 5;
+  chunk_iter.current = 13;
+  chunk_iter.lastBlocksID = 15;
+  chunk_iter.file_desc = 0; 
+
+  int ret = CHUNK_GetNext(&chunk_iter, &chunk);
+  printf(" %d", ret);
+
+  // mergePhases(file_desc,chunkSize,bWay,&fileIterator);
 }
 
 int createAndPopulateHeapFile(char* filename){
