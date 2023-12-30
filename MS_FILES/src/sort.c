@@ -26,6 +26,30 @@ void sort_FileInChunks(int file_desc, int numBlocksInChunk){
 
 }
 
-void sort_Chunk(CHUNK* chunk){
+void sort_Chunk(CHUNK* chunk) {
+    int numRecords = chunk->recordsInChunk;
 
+    for (int i = 0; i < numRecords - 1; i++) {
+        for (int j = 0; j < numRecords - i - 1; j++) {
+            Record record1, record2;
+
+            // Retrieve records at positions j and j+1
+            if (CHUNK_GetIthRecordInChunk(chunk, j, &record1) == 0 &&
+                CHUNK_GetIthRecordInChunk(chunk, j + 1, &record2) == 0) {
+
+                // Compare records and swap if necessary
+                if (shouldSwap(&record1, &record2) > 0) {
+                    // Swap records using CHUNK_UpdateIthRecord
+                    if (CHUNK_UpdateIthRecord(chunk, j, record2) == 0 &&
+                        CHUNK_UpdateIthRecord(chunk, j + 1, record1) == 0) {
+                        // Swap successful
+                    } else {
+                        return;
+                    }
+                }
+            } else {
+                    return;
+            }
+        }
+    }
 }
