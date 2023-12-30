@@ -94,8 +94,6 @@ int main() {
 
 
 
-  
-
   // CHUNK_GetIthRecordInChunk(&chunk, , &rec);
   // printRecord(rec);
 
