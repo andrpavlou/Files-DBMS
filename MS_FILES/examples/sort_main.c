@@ -19,22 +19,87 @@ void mergePhases(int inputFileDesc,int chunkSize,int bWay, int* fileCounter);
 int nextOutputFile(int* fileCounter);
 
 int main() {
-  int chunkSize=5;
-  int bWay= 4;
+  int chunkSize = 5;
+  int bWay = 4;
   int fileIterator;
-  //
   BF_Init(LRU);
   int file_desc = createAndPopulateHeapFile(FILE_NAME);
-  // sortPhase(file_desc,chunkSize);
+  
+  Record rec;
   CHUNK chunk;
-  CHUNK_Iterator chunk_iter;
-  chunk_iter.blocksInChunk = 5;
-  chunk_iter.current = 13;
-  chunk_iter.lastBlocksID = 15;
-  chunk_iter.file_desc = 0; 
+  CHUNK_Iterator ci = CHUNK_CreateIterator(file_desc, 2);
+  
+  chunk.from_BlockId = 1;
+  chunk.to_BlockId = 2;
+  chunk.file_desc = file_desc;
+  chunk.recordsInChunk = 18;
+  chunk.blocksInChunk = 2;
 
-  int ret = CHUNK_GetNext(&chunk_iter, &chunk);
-  printf(" %d", ret);
+  //Out of bound
+  CHUNK_GetIthRecordInChunk(&chunk, 18, &rec);
+  printf("RECORD IN POSITION THAT DOES NOT EXIT:");
+  printRecord(rec);
+  printf("\n");
+  
+  //Starting from 0 to recordsInChunk - 1
+  CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
+  printf("RECORD IN 2nd POS:");
+  printRecord(rec);
+  printf("\n");
+
+  Record newrec = randomRecord();
+  printf("NEW RECORD:");
+  printRecord(newrec);
+  printf("\n");
+
+  CHUNK_UpdateIthRecord(&chunk, 2, newrec);
+  CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
+  printf("UPDATED_RECORD IN 2nd POS:");
+  printRecord(rec);
+  printf("\n");
+
+
+
+  CHUNK_GetIthRecordInChunk(&chunk, 5, &rec);
+
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+  CHUNK_GetNext(&ci, &chunk);
+  CHUNK_Print(chunk);
+
+
+
+  
+
+  // CHUNK_GetIthRecordInChunk(&chunk, , &rec);
+  // printRecord(rec);
+
+  // sortPhase(file_desc,chunkSize);  
 
   // mergePhases(file_desc,chunkSize,bWay,&fileIterator);
 }
