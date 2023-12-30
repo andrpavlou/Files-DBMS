@@ -7,9 +7,6 @@
 #define FILE_NAME "data.db"
 #define OUT_NAME "out"
 
-
-
-
 int createAndPopulateHeapFile(char* filename);
 
 void sortPhase(int file_desc,int chunkSize);
@@ -27,81 +24,94 @@ int main() {
 
     Record rec;
     CHUNK chunk;
-    CHUNK_Iterator ci = CHUNK_CreateIterator(file_desc, 2);
+    CHUNK_Iterator ci = CHUNK_CreateIterator(file_desc, 3);
   
     chunk.from_BlockId = 1;
-    chunk.to_BlockId = 2;
+    chunk.to_BlockId = 3;
     chunk.file_desc = file_desc;
-    chunk.recordsInChunk = 18;
-    chunk.blocksInChunk = 2;
+    chunk.recordsInChunk = 3 * 9;
+    chunk.blocksInChunk = 3;
+
+    int num = ci.lastBlocksID / chunk.blocksInChunk;
+    if(ci.lastBlocksID % chunk.blocksInChunk != 0)
+        num ++;
+
+    sort_FileInChunks(file_desc, 3);
+    for(int i = 1; i <= num; i++){
+        CHUNK_Print(chunk);
+        ci.current = chunk.to_BlockId;
+        printf("--------------------------\n");
+        CHUNK_GetNext(&ci, &chunk);
+    }
+
+
 
     //Out of bound
-    CHUNK_GetIthRecordInChunk(&chunk, 18, &rec);
-    printf("RECORD IN POSITION THAT DOES NOT EXIT:");
-    printRecord(rec);
-    printf("\n");
+    // CHUNK_GetIthRecordInChunk(&chunk, 18, &rec);
+    // printf("RECORD IN POSITION THAT DOES NOT EXIT:");
+    // printRecord(rec);
+    // printf("\n");
   
-    //Starting from 0 to recordsInChunk - 1
-    CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
-    printf("RECORD IN 2nd POS:");
-    printRecord(rec);
-    printf("\n");
+    // //Starting from 0 to recordsInChunk - 1
+    // printf("RECORD IN 2nd POS:");
+    // printRecord(rec);
+    // printf("\n");
 
-    Record newrec = randomRecord();
-    printf("NEW RECORD:");
-    printRecord(newrec);
-    printf("\n");
+    // Record newrec = randomRecord();
+    // printf("NEW RECORD:");
+    // printRecord(newrec);
+    // printf("\n");
 
-    CHUNK_UpdateIthRecord(&chunk, 2, newrec);
-    CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
-    printf("UPDATED_RECORD IN 2nd POS:");
-    printRecord(rec);
-    printf("\n");
-
-
-
-    CHUNK_Print(chunk);
-    sort_Chunk(&chunk);
-    printf("-------AFTER:-------\n");
-    CHUNK_Print(chunk);
-
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
-    CHUNK_GetNext(&ci, &chunk);
-    CHUNK_Print(chunk);
+    // CHUNK_UpdateIthRecord(&chunk, 2, newrec);
+    // CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
+    // printf("UPDATED_RECORD IN 2nd POS:");
+    // printRecord(rec);
+    // printf("\n");
 
 
 
-    CHUNK_GetIthRecordInChunk(&chunk, , &rec);
-    printRecord(rec);
+    // CHUNK_Print(chunk);
+    // sort_Chunk(&chunk);
+    // printf("-------AFTER:-------\n");
+    // CHUNK_Print(chunk);
 
-    sortPhase(file_desc,chunkSize);  
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
+    // CHUNK_GetNext(&ci, &chunk);
+    // CHUNK_Print(chunk);
 
-    mergePhases(file_desc,chunkSize,bWay,&fileIterator);
+
+
+    // CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
+    // printRecord(rec);
+
+    // sortPhase(file_desc,chunkSize);  
+
+    // mergePhases(file_desc,chunkSize,bWay,&fileIterator);
 }
 
 int createAndPopulateHeapFile(char* filename){

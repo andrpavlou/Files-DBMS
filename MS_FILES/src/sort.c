@@ -22,8 +22,24 @@ bool shouldSwap(struct Record *rec1, struct Record *rec2) {
     return nameComparison > 0;
 }
 
-void sort_FileInChunks(int file_desc, int numBlocksInChunk){
+void sort_FileInChunks(int file_desc, int numBlocksInChunk) {
+    // Assuming CHUNK_GetNext is a function that retrieves the next chunk in the file
+    CHUNK chunk;
+    CHUNK_Iterator iterator = CHUNK_CreateIterator(file_desc, numBlocksInChunk);
 
+    chunk.from_BlockId = 1;
+    chunk.to_BlockId = numBlocksInChunk;
+    chunk.file_desc = file_desc;
+    chunk.recordsInChunk = numBlocksInChunk * HP_GetMaxRecordsInBlock(file_desc);
+    chunk.blocksInChunk = numBlocksInChunk;
+    
+    sort_Chunk(&chunk);
+    // Iterate through each chunk
+    while (CHUNK_GetNext(&iterator, &chunk) != -1) {
+        iterator.current = chunk.to_BlockId;
+        // Sort records within the current chunk
+        sort_Chunk(&chunk);
+    }
 }
 
 void sort_Chunk(CHUNK* chunk) {
@@ -36,7 +52,6 @@ void sort_Chunk(CHUNK* chunk) {
             // Retrieve records at positions j and j+1
             if (CHUNK_GetIthRecordInChunk(chunk, j, &record1) == 0 &&
                 CHUNK_GetIthRecordInChunk(chunk, j + 1, &record2) == 0) {
-
                 // Compare records and swap if necessary
                 if (shouldSwap(&record1, &record2) > 0) {
                     // Swap records using CHUNK_UpdateIthRecord
