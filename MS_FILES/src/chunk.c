@@ -17,7 +17,8 @@ CHUNK_Iterator CHUNK_CreateIterator(int fileDesc, int blocksInChunk) {
 
 int CHUNK_GetNext(CHUNK_Iterator *iterator, CHUNK *chunk) {
     // Check if there are more chunks to iterate
-    if (iterator->current + iterator->blocksInChunk <= iterator->lastBlocksID) {
+    //-----egine allagi prin itan iterate->current + ....
+    if (iterator->current < iterator->lastBlocksID) {
         // Populate the CHUNK structure with relevant data
         chunk->file_desc = iterator->file_desc;
         int d = (iterator->current/iterator->blocksInChunk);
@@ -47,7 +48,7 @@ int CHUNK_GetNext(CHUNK_Iterator *iterator, CHUNK *chunk) {
         return 1; // Success
     } 
     else {
-        return 0; // No more chunks to iterate
+        return -1; // No more chunks to iterate
         }
 }
 
