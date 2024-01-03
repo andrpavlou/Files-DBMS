@@ -37,14 +37,15 @@ int main() {
         num ++;
 
     sort_FileInChunks(file_desc, 3);
-    for(int i = 1; i <= num; i++){
-        CHUNK_Print(chunk);
-        ci.current = chunk.to_BlockId;
-        printf("--------------------------\n");
-        CHUNK_GetNext(&ci, &chunk);
-    }
+    // for(int i = 1; i <= num; i++){
+    //     CHUNK_Print(chunk);
+    //     ci.current = chunk.to_BlockId;
+    //     printf("--------------------------\n");
+    //     CHUNK_GetNext(&ci, &chunk);
+    // }
+    int file_desc2 = HP_CreateFile(OUT_NAME);
 
-
+    merge(file_desc, 3, bWay, file_desc2);
 
     //Out of bound
     // CHUNK_GetIthRecordInChunk(&chunk, 18, &rec);
