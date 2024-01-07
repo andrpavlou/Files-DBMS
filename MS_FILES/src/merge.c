@@ -1,26 +1,115 @@
 #include <merge.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+
+#define MAX_SIZE 27  // Maximum size for each array
+#define MAX_ARR 4   // Maximum number of arrays
+
+void mergeRange(Record **arr, int start, int end) {
+    Record new_array[MAX_SIZE * MAX_ARR]; // New array to store the merged result
+    int temp_indices[MAX_ARR];         // Array to keep track of current indices in each array
+    int new_array_index = 0;
+
+    // Initialize temp_indices to the start of each array in the range
+    for (int i = start; i <= end; ++i) {
+        temp_indices[i] = 0;
+    }
+
+    while (new_array_index < MAX_SIZE * (end - start + 1)) {
+        Record min_val;
+        Record min_val2;
+
+        strcpy(min_val.name, "Zzzzzzzzzz");
+
+        int min_index = -1;
+        // Find the minimum value among the current elements of the specified range of arrays
+        for (int i = start; i <= end; ++i) {
+
+            if (temp_indices[i] < MAX_SIZE && strcmp(arr[i][temp_indices[i]].name, min_val.name) < 0) {
+                min_val = arr[i][temp_indices[i]];
+                min_index = i;
+            }
+            if (temp_indices[i] < MAX_SIZE && !strcmp(arr[i][temp_indices[i]].name, min_val.name) && 
+            strcmp(arr[i][temp_indices[i]].surname, min_val.surname) < 1){
+                min_val = arr[i][temp_indices[i]];
+                min_index = i;
+            }
+        }
+
+        // Add the minimum value to the new array
+        new_array[new_array_index++] = min_val;
+
+        // Move to the next element in the array from which the minimum value was taken
+        temp_indices[min_index]++;
+    }
+     for (int i = 0; i < MAX_SIZE * (end - start + 1); ++i) {
+        printRecord(new_array[i]);
+    }
+    printf("\n");
+}
+
+
+
+
 
 void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
-    CHUNK_Iterator chunk_it = CHUNK_CreateIterator(input_FileDesc, chunkSize);
-    CHUNK chunk, last_chunk;
-    CHUNK_RecordIterator rec_iter[bWay];
+    CHUNK chunk;
+    CHUNK last_chunk;
 
     chunk.from_BlockId = 1;
     chunk.to_BlockId = chunkSize;
     chunk.file_desc = input_FileDesc;
-    chunk.recordsInChunk = chunkSize * HP_GetMaxRecordsInBlock(input_FileDesc);
-    chunk.blocksInChunk = chunkSize;    
+    chunk.recordsInChunk = chunkSize * 9;
+    chunk.blocksInChunk = chunkSize;
+
+
+    CHUNK_RecordIterator rec_iter[bWay];
+    CHUNK_Iterator chunk_it  = CHUNK_CreateIterator(input_FileDesc, bWay);
     rec_iter[0] = CHUNK_CreateRecordIterator(&chunk);
+    
+
 
     for(int i = 1; i < bWay; i++){
-        CHUNK_GetNext(&chunk_it, &chunk);   
+        chunk_it.current = chunk.to_BlockId;
         rec_iter[i] = CHUNK_CreateRecordIterator(&chunk);
+        CHUNK_GetNext(&chunk_it, &chunk); 
         last_chunk = chunk;
     }   
 
-    //IMPLEMENT MERGE SORT
+
+    Record* chunk_recs[bWay];
+    int full_total = 0;
+    int total_rec = 0;
+    for(int j = 0; j < bWay; j++){
+        for (int i = rec_iter[j].chunk.from_BlockId; i <= rec_iter[j].chunk.to_BlockId; ++i) {
+            printf(" %d  %d \n", rec_iter[j].chunk.from_BlockId, rec_iter[j].chunk.to_BlockId);
+            total_rec += HP_GetRecordCounter(rec_iter[j].chunk.file_desc, i);
+        }
+        full_total += total_rec;
+        chunk_recs[j] = malloc(total_rec * sizeof(Record));
+        total_rec = 0;
+    }
+
+    int curr = 0;
+    for(int i = 0; i < bWay; i++){
+        while(CHUNK_RecordIterator_GetNext(&rec_iter[i], &chunk_recs[i][curr]) == 1){
+            curr ++;
+        }
+        curr = 0;
+    }
+    // printRecord(chunk_recs[1][30]);
+    // mergeRange(chunk_recs, 0, 3);
+    // for(int i = 0; i < bWay; i++){
+    //     for(int j = 0; j < 27; j++){
+    //         printRecord(chunk_recs[i][j]);
+    //     }
+    //     printf("\n\n");
+    // }
+
+
+        //IMPLEMENT MERGE SORT
 }
 
 
@@ -89,23 +178,4 @@ int main() {
 
 
 
-    //last_chunk = 2 -> arr[2]->chunk4 = get_next(arr[2]) last_chunk = chunk
-
-    //arr -> chunk1 chunk2 chunk3
-    //arr_chunk                        arr_block
-
-    //chunk1 -> 1-3  block1   =>        block2
-    //chunk2 -> 4-6  block6   =>        block6 -> id6
-    //chunk3 -> 7-9  block7   =>        block7
-
-    //arr_block[1] - > empty => arr_chunk[1]
-    //arr_block[1] id == arr_chunk[1]->last_id ???
-
-
     
-    //arr_block[3] => merge to kathe block -> temp
-
-
-    //temp_block1 = full, block4 ->empty
-    //temp_block2 = full, block5 ->empty 
-    //temp_block3 = full, block6 ->empty

@@ -15,6 +15,7 @@ void mergePhases(int inputFileDesc,int chunkSize,int bWay, int* fileCounter);
 
 int nextOutputFile(int* fileCounter);
 
+
 int main() {
     int chunkSize = 5;
     int bWay = 4;
@@ -37,13 +38,14 @@ int main() {
         num ++;
 
     sort_FileInChunks(file_desc, 3);
-    // for(int i = 1; i <= num; i++){
-    //     CHUNK_Print(chunk);
-    //     ci.current = chunk.to_BlockId;
-    //     printf("--------------------------\n");
-    //     CHUNK_GetNext(&ci, &chunk);
-    // }
+    for(int i = 1; i <= num; i++){
+        CHUNK_Print(chunk);
+        // ci.current = chunk.to_BlockId;
+        printf("--------------------------\n");
+        CHUNK_GetNext(&ci, &chunk);
+    }
     int file_desc2 = HP_CreateFile(OUT_NAME);
+
 
     merge(file_desc, 3, bWay, file_desc2);
 

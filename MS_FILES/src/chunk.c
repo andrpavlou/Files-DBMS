@@ -26,7 +26,7 @@ int CHUNK_GetNext(CHUNK_Iterator *iterator, CHUNK *chunk) {
 
         if(rem == 0)
             d--;
-        chunk->from_BlockId = (d * iterator->blocksInChunk) + iterator->blocksInChunk + 1 ;
+        chunk->from_BlockId = (d * iterator->blocksInChunk) + iterator->blocksInChunk ; // + 1?????/
 
         int toBlock = chunk->from_BlockId + iterator->blocksInChunk - 1;
         if (toBlock <= iterator->lastBlocksID)
@@ -47,9 +47,8 @@ int CHUNK_GetNext(CHUNK_Iterator *iterator, CHUNK *chunk) {
 
         return 1; // Success
     } 
-    else {
-        return -1; // No more chunks to iterate
-        }
+
+    return -1; // No more chunks to iterate
 }
 
 int CHUNK_GetIthRecordInChunk(CHUNK* chunk, int i, Record* record) {
@@ -71,9 +70,8 @@ int CHUNK_GetIthRecordInChunk(CHUNK* chunk, int i, Record* record) {
             return -1; // Error in retrieving the record from the block
         }
     } 
-    else {
-        return -1; // Index out of bounds
-    }
+
+    return -1; // Index out of bounds
 
 }
 
@@ -94,9 +92,9 @@ int CHUNK_UpdateIthRecord(CHUNK* chunk, int i, Record record) {
         } else {
             return -1; // Error in updating the record in the block
         }
-    } else {
-        return -1; // Index out of bounds
-    }
+    } 
+    return -1; // Index out of bounds
+
 }
 
 void CHUNK_Print(CHUNK chunk) {
@@ -128,7 +126,6 @@ int CHUNK_RecordIterator_GetNext(CHUNK_RecordIterator *iterator, Record *record)
     for (int i = iterator->chunk.from_BlockId; i <= iterator->chunk.to_BlockId; ++i) {
         totalRecords += HP_GetRecordCounter(iterator->chunk.file_desc, i);
     }
-
     // Check if there are more records to iterate
     if (iterator->cursor < totalRecords) {
         // Retrieve the next record using the existing CHUNK_GetIthRecordInChunk function
@@ -141,7 +138,6 @@ int CHUNK_RecordIterator_GetNext(CHUNK_RecordIterator *iterator, Record *record)
             return -1; // Error in retrieving the record
         }
     
-    } else {
-        return 0; // No more records to iterate
-    }
+    } 
+    return 0; // No more records to iterate
 }
