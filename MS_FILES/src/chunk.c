@@ -21,11 +21,7 @@ int CHUNK_GetNext(CHUNK_Iterator *iterator, CHUNK *chunk) {
     if (iterator->current < iterator->lastBlocksID) {
         // Populate the CHUNK structure with relevant data
         chunk->file_desc = iterator->file_desc;
-        int d = (iterator->current / iterator->blocksInChunk);
-        int rem = (iterator->current % iterator->blocksInChunk);
 
-        if(rem == 0)
-            d--;
 
         // chunk->from_BlockId = (d * iterator->blocksInChunk) + iterator->blocksInChunk; // + 1?????/
         chunk->from_BlockId = iterator->current + 1;

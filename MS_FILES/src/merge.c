@@ -42,10 +42,11 @@ void mergeRange(Record **arr, int start, int end, int output_FileDesc) {
             }
         }
 
-        if(cursor > HP_GetMaxRecordsInBlock(output_FileDesc)){
+        if(cursor >= HP_GetMaxRecordsInBlock(output_FileDesc)){
             cursor = 0;
             block_id++;
         }
+        // printf("%d , %d \n ", cursor, block_id);
         HP_UpdateRecord(output_FileDesc, block_id, cursor, min_val);
         cursor++;
         // Add the minimum value to the new array
@@ -109,7 +110,6 @@ void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
         while(CHUNK_GetIthRecordInChunk(&rec_iter[i].chunk, curr, &chunk_recs[i][curr]) == 0){
             curr ++;
         }
-
         curr = 0;
     }
 
