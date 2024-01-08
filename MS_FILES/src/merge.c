@@ -15,9 +15,6 @@ void mergeRange(Record **arr, int start, int end, int output_FileDesc) {
     int cursor = 0;
     
 
-    // HP_PrintAllEntries(output_FileDesc);
-
-
     // Initialize temp_indices to the start of each array in the range
     for (int i = start; i <= end; ++i) {
         temp_indices[i] = 0;
@@ -45,21 +42,24 @@ void mergeRange(Record **arr, int start, int end, int output_FileDesc) {
             }
         }
 
-        // if(cursor > HP_GetMaxRecordsInBlock(output_FileDesc)){
-        //     cursor = 0;
-        //     block_id++;
-        // }
-        // HP_UpdateRecord(output_FileDesc, block_id, cursor, min_val);
-        // cursor++;
+        if(cursor > HP_GetMaxRecordsInBlock(output_FileDesc)){
+            cursor = 0;
+            block_id++;
+        }
+        HP_UpdateRecord(output_FileDesc, block_id, cursor, min_val);
+        cursor++;
         // Add the minimum value to the new array
         new_array[new_array_index++] = min_val;
 
         // Move to the next element in the array from which the minimum value was taken
         temp_indices[min_index]++;
     }
-    for (int i = 0; i < MAX_SIZE * (end - start + 1); ++i) {
-        printRecord(new_array[i]);
-    }
+
+    HP_PrintAllEntries(output_FileDesc);
+
+    // for (int i = 0; i < MAX_SIZE * (end - start + 1); ++i) {
+    //     printRecord(new_array[i]);
+    // }
     printf("\n");
 }
 
@@ -81,6 +81,7 @@ void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
     CHUNK_RecordIterator rec_iter[bWay];
     CHUNK_Iterator chunk_it  = CHUNK_CreateIterator(input_FileDesc, chunkSize);
     rec_iter[0] = CHUNK_CreateRecordIterator(&chunk);
+    chunk_it.current = chunk.to_BlockId;
 
     int index = 1;
     while (CHUNK_GetNext(&chunk_it, &chunk) == 1 && index < bWay ) {
@@ -88,8 +89,7 @@ void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
         rec_iter[index] = CHUNK_CreateRecordIterator(&chunk);
         index ++; 
     }
-
-
+    
     Record* chunk_recs[bWay];
     int full_total = 0;
     int total_rec = 0;
@@ -106,18 +106,18 @@ void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
 
     int curr = 0;
     for(int i = 0; i < bWay; i++){
-        while(CHUNK_RecordIterator_GetNext(&rec_iter[i], &chunk_recs[i][curr]) == 1){
+        while(CHUNK_GetIthRecordInChunk(&rec_iter[i].chunk, curr, &chunk_recs[i][curr]) == 0){
             curr ++;
         }
+
         curr = 0;
     }
 
     // for(int i = 0; i < bWay; i++){
     //     CHUNK_Print(rec_iter[i].chunk);
-    //     printf("\n------------------\n");
+    //     printf("\n----------------\n");
     // }
-    // printf("\n\n\n");
-    // mergeRange(chunk_recs, 0, 3, output_FileDesc);
+    mergeRange(chunk_recs, 0, 3, output_FileDesc);
         //IMPLEMENT MERGE SORT
 }
 

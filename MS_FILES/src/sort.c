@@ -35,20 +35,21 @@ void sort_FileInChunks(int file_desc, int numBlocksInChunk) {
     chunk.blocksInChunk = numBlocksInChunk;
     
     sort_Chunk(&chunk);
-    CHUNK_Print(chunk);
+    iterator.current = chunk.to_BlockId;
+
+
     // Iterate through each chunk
     while (CHUNK_GetNext(&iterator, &chunk) == 1) {
+        // printf("%d %d \n", chunk.from_BlockId, chunk.to_BlockId);
         iterator.current = chunk.to_BlockId;
         // Sort records within the current chunk
-        // printf("----------------");
         sort_Chunk(&chunk);
-        // CHUNK_Print(chunk);
     }
 }
 
 void sort_Chunk(CHUNK* chunk) {
     int numRecords = chunk->recordsInChunk;
-    printf(" %d ", numRecords);
+
     for (int i = 0; i < numRecords - 1; i++) {
         for (int j = 0; j < numRecords - i - 1; j++) {
             Record record1, record2;
@@ -62,11 +63,13 @@ void sort_Chunk(CHUNK* chunk) {
                     if (CHUNK_UpdateIthRecord(chunk, j, record2) == 0 &&
                         CHUNK_UpdateIthRecord(chunk, j + 1, record1) == 0) {
                         // Swap successful
-                    } 
+                    } else {
+                        return;
+                    }
                 }
+            } else {
+                    return;
             }
-         
         }
     }
 }
-

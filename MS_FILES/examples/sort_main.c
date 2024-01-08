@@ -25,33 +25,35 @@ int main() {
 
     Record rec;
     CHUNK chunk;
-    CHUNK_Iterator ci = CHUNK_CreateIterator(file_desc, chunkSize);
+    CHUNK_Iterator iterator = CHUNK_CreateIterator(file_desc, chunkSize);
   
     chunk.from_BlockId = 1;
     chunk.to_BlockId = chunkSize;
     chunk.file_desc = file_desc;
-    chunk.recordsInChunk = chunkSize * 9;
+    chunk.recordsInChunk = 27;
     chunk.blocksInChunk = chunkSize;
 
-
-
-
-    sort_FileInChunks(file_desc, chunkSize);
-    CHUNK_Print(chunk);
-    printf("--------------------------\n");
-    while(CHUNK_GetNext(&ci, &chunk) == 1){
-        ci.current = chunk.to_BlockId;
-        CHUNK_Print(chunk);
-        printf("--------------------------\n");
-    }
 
     int file_desc2 = HP_CreateFile(OUT_NAME);
 
 
+
+    sort_FileInChunks(file_desc, chunkSize);
+    // CHUNK_Print(chunk);
+    // iterator.current = chunk.to_BlockId;
+    // printf(" \n-------\n");
+
+    // Iterate through each chunk
+    // while (CHUNK_GetNext(&iterator, &chunk) == 1) {
+    //     iterator.current = chunk.to_BlockId;
+    //     printf(" \n-------\n");
+    //     CHUNK_Print(chunk);
+    // }
     merge(file_desc, chunkSize, bWay, file_desc2);
 
+
     //Out of bound
-    // CHUNK_GetIthRecordInChunk(&chunk, 18, &rec);
+    // CHUNK_GetIthRecordInChunk(&chunk, 27, &rec);
     // printf("RECORD IN POSITION THAT DOES NOT EXIT:");
     // printRecord(rec);
     // printf("\n");

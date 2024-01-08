@@ -27,8 +27,8 @@ int CHUNK_GetNext(CHUNK_Iterator *iterator, CHUNK *chunk) {
         if(rem == 0)
             d--;
 
-        chunk->from_BlockId = (d * iterator->blocksInChunk) + iterator->blocksInChunk; // + 1?????/
-
+        // chunk->from_BlockId = (d * iterator->blocksInChunk) + iterator->blocksInChunk; // + 1?????/
+        chunk->from_BlockId = iterator->current + 1;
         int toBlock = chunk->from_BlockId + iterator->blocksInChunk - 1;
         if (toBlock < iterator->lastBlocksID)
             chunk->to_BlockId = toBlock ;
@@ -100,9 +100,9 @@ int CHUNK_UpdateIthRecord(CHUNK* chunk, int i, Record record) {
 }
 
 void CHUNK_Print(CHUNK chunk) {
-    
     // Loop through each record in the chunk and print it
     Record record;
+
     for (int i = 0; i < chunk.recordsInChunk; ++i) {
         
         if (CHUNK_GetIthRecordInChunk(&chunk, i, &record) == 0)
