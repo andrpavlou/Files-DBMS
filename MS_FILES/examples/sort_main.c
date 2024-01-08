@@ -17,7 +17,7 @@ int nextOutputFile(int* fileCounter);
 
 
 int main() {
-    int chunkSize = 5;
+    int chunkSize = 3;
     int bWay = 4;
     int fileIterator;
     BF_Init(LRU);
@@ -25,29 +25,30 @@ int main() {
 
     Record rec;
     CHUNK chunk;
-    CHUNK_Iterator ci = CHUNK_CreateIterator(file_desc, 3);
+    CHUNK_Iterator ci = CHUNK_CreateIterator(file_desc, chunkSize);
   
     chunk.from_BlockId = 1;
-    chunk.to_BlockId = 3;
+    chunk.to_BlockId = chunkSize;
     chunk.file_desc = file_desc;
-    chunk.recordsInChunk = 3 * 9;
-    chunk.blocksInChunk = 3;
+    chunk.recordsInChunk = chunkSize * 9;
+    chunk.blocksInChunk = chunkSize;
 
-    int num = ci.lastBlocksID / chunk.blocksInChunk;
-    if(ci.lastBlocksID % chunk.blocksInChunk != 0)
-        num ++;
 
-    sort_FileInChunks(file_desc, 3);
-    for(int i = 1; i <= num; i++){
+
+
+    sort_FileInChunks(file_desc, chunkSize);
+    CHUNK_Print(chunk);
+    printf("--------------------------\n");
+    while(CHUNK_GetNext(&ci, &chunk) == 1){
+        ci.current = chunk.to_BlockId;
         CHUNK_Print(chunk);
-        // ci.current = chunk.to_BlockId;
         printf("--------------------------\n");
-        CHUNK_GetNext(&ci, &chunk);
     }
+
     int file_desc2 = HP_CreateFile(OUT_NAME);
 
 
-    merge(file_desc, 3, bWay, file_desc2);
+    merge(file_desc, chunkSize, bWay, file_desc2);
 
     //Out of bound
     // CHUNK_GetIthRecordInChunk(&chunk, 18, &rec);
