@@ -23,7 +23,7 @@ int CHUNK_GetNext(CHUNK_Iterator *iterator, CHUNK *chunk) {
         chunk->file_desc = iterator->file_desc;
 
 
-        // chunk->from_BlockId = (d * iterator->blocksInChunk) + iterator->blocksInChunk; // + 1?????/
+        // chunk->from_BlockId = (d * iterator->blocksInChunk) + iterator->blocksInChunk; +1?
         chunk->from_BlockId = iterator->current + 1;
         int toBlock = chunk->from_BlockId + iterator->blocksInChunk - 1;
         if (toBlock < iterator->lastBlocksID)

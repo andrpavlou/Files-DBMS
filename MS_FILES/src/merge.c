@@ -7,11 +7,11 @@
 #define MAX_SIZE 27  // Maximum size for each array
 #define MAX_ARR 4   // Maximum number of arrays
 
-void mergeRange(Record **arr, int start, int end, int output_FileDesc) {
+void mergeRange(Record **arr, int start, int end, int input_FileDesc, int output_FileDesc, int last_block_updated) {
     Record new_array[MAX_SIZE * MAX_ARR]; // New array to store the merged result
     int temp_indices[MAX_ARR];         // Array to keep track of current indices in each array
     int new_array_index = 0;
-    int block_id = 1;
+    int block_id = last_block_updated;
     int cursor = 0;
     
 
@@ -41,11 +41,15 @@ void mergeRange(Record **arr, int start, int end, int output_FileDesc) {
                 min_index = i;
             }
         }
-
-        if(cursor >= HP_GetMaxRecordsInBlock(output_FileDesc)){
+        
+            // printf(" %d \n", HP_GetRecordCounter(input_FileDesc, block_id));
+        if(cursor >= HP_GetRecordCounter(input_FileDesc, block_id)){
             cursor = 0;
             block_id++;
         }
+        if(block_id > 56)
+            break;
+
         // printf("%d , %d \n ", cursor, block_id);
         HP_UpdateRecord(output_FileDesc, block_id, cursor, min_val);
         cursor++;
@@ -56,12 +60,12 @@ void mergeRange(Record **arr, int start, int end, int output_FileDesc) {
         temp_indices[min_index]++;
     }
 
-    HP_PrintAllEntries(output_FileDesc);
+    // HP_PrintAllEntries(output_FileDesc);
 
     // for (int i = 0; i < MAX_SIZE * (end - start + 1); ++i) {
     //     printRecord(new_array[i]);
     // }
-    printf("\n");
+    // printf("\n");
 }
 
 
@@ -70,121 +74,65 @@ void mergeRange(Record **arr, int start, int end, int output_FileDesc) {
 
 void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
     CHUNK chunk;
-    CHUNK last_chunk;
+    CHUNK first_chunk, last_chunk;
 
     chunk.from_BlockId = 1;
     chunk.to_BlockId = chunkSize;
     chunk.file_desc = input_FileDesc;
     chunk.recordsInChunk = chunkSize * HP_GetMaxRecordsInBlock(input_FileDesc);
     chunk.blocksInChunk = chunkSize;
-
+    first_chunk = chunk;
 
     CHUNK_RecordIterator rec_iter[bWay];
     CHUNK_Iterator chunk_it  = CHUNK_CreateIterator(input_FileDesc, chunkSize);
     rec_iter[0] = CHUNK_CreateRecordIterator(&chunk);
     chunk_it.current = chunk.to_BlockId;
+    last_chunk = chunk;
 
-    int index = 1;
-    while (CHUNK_GetNext(&chunk_it, &chunk) == 1 && index < bWay ) {
-        chunk_it.current = chunk.to_BlockId;
-        rec_iter[index] = CHUNK_CreateRecordIterator(&chunk);
-        index ++; 
-    }
-    
-    Record* chunk_recs[bWay];
-    int full_total = 0;
-    int total_rec = 0;
-    for(int j = 0; j < bWay; j++){
-        for (int i = rec_iter[j].chunk.from_BlockId; i <= rec_iter[j].chunk.to_BlockId; ++i) {
-            rec_iter[j].currentBlockId = rec_iter->chunk.to_BlockId;
-            total_rec += HP_GetRecordCounter(rec_iter[j].chunk.file_desc, i);
+    while(last_chunk.to_BlockId != HP_GetIdOfLastBlock(input_FileDesc)){
+        int index = 1;
+        while (CHUNK_GetNext(&chunk_it, &chunk) == 1 && index < bWay ) {
+            chunk_it.current = chunk.to_BlockId;
+            rec_iter[index] = CHUNK_CreateRecordIterator(&chunk);
+            index ++; 
+            last_chunk = chunk;
         }
-        full_total += total_rec;
-
-        chunk_recs[j] = malloc(total_rec * sizeof(Record));
-        total_rec = 0;
-    }
-
-    int curr = 0;
-    for(int i = 0; i < bWay; i++){
-        while(CHUNK_GetIthRecordInChunk(&rec_iter[i].chunk, curr, &chunk_recs[i][curr]) == 0){
-            curr ++;
+        
+        Record* chunk_recs[bWay];
+        for(int j = 0; j < bWay; j++){
+            int total_rec = 0;
+            for (int i = rec_iter[j].chunk.from_BlockId; i <= rec_iter[j].chunk.to_BlockId; ++i) {
+                rec_iter[j].currentBlockId = rec_iter->chunk.to_BlockId;
+                total_rec += HP_GetRecordCounter(rec_iter[j].chunk.file_desc, i);
+            }
+            chunk_recs[j] = malloc(total_rec * sizeof(Record));
         }
-        curr = 0;
-    }
 
-    // for(int i = 0; i < bWay; i++){
-    //     CHUNK_Print(rec_iter[i].chunk);
-    //     printf("\n----------------\n");
-    // }
-    mergeRange(chunk_recs, 0, 3, output_FileDesc);
-        //IMPLEMENT MERGE SORT
-}
-
-
-
-
-
-/* #include <stdio.h>
-
-#define MAX_SIZE 3 // Maximum size for each array
-#define MAX_ARR 10   // Maximum number of arrays
-
-void mergeRange(int arr[][MAX_SIZE], int start, int end) {
-    int new_array[MAX_SIZE * MAX_ARR]; // New array to store the merged result
-    int temp_indices[MAX_ARR];         // Array to keep track of current indices in each array
-    int new_array_index = 0;
-    // Initialize temp_indices to the start of each array in the range
-    for (int i = start; i <= end; ++i) {
-        temp_indices[i] = 0;
-    }
-
-    while (new_array_index < MAX_SIZE) {
-        int min_val = __INT_MAX__;
-        int min_index = -1;
-
-        // Find the minimum value among the current elements of the specified range of arrays
-        for (int i = start; i <= end; ++i) {
-            if (temp_indices[i] < MAX_SIZE && arr[i][temp_indices[i]] < min_val && arr[i][temp_indices[i]] != 0) {
-                min_val = arr[i][temp_indices[i]];
-                min_index = i;
+        for(int i = 0; i < bWay; i++){
+            int curr = 0;
+            while(CHUNK_GetIthRecordInChunk(&rec_iter[i].chunk, curr, &chunk_recs[i][curr]) == 0){
+                curr ++;
             }
         }
 
-        // Add the minimum value to the new array
-        new_array[new_array_index++] = min_val;
+        int end = bWay - 1;
+        int divv = last_chunk.to_BlockId - first_chunk.from_BlockId + 1;
+        divv = divv % (bWay * chunkSize);
 
-        // Move to the next element in the array from which the minimum value was taken
-        temp_indices[min_index]++;
+        if(divv != 0)
+            end = divv / chunkSize - 1;
+        mergeRange(chunk_recs, 0, end, input_FileDesc, output_FileDesc, first_chunk.from_BlockId);
+
+
+        rec_iter[0].chunk = chunk;
+        first_chunk = chunk;
+        chunk_it.current = chunk.to_BlockId;
+        // for(int i = 0; i < bWay; i++)
+            // free(chunk_recs[i]);
     }
 
-    // Print the new sorted array
-    printf("New sorted array based on arrays from %d to %d:\n", start, end);
-    for (int i = 0; i < MAX_SIZE; i++) {
-        printf("%d ", new_array[i]);
-    }
-    printf("\n");
+    HP_PrintAllEntries(output_FileDesc);
 }
 
-int main() {
-    int arrays[MAX_ARR][MAX_SIZE] = {
-        {9},
-        {8},
-        {10},
-        // Add more arrays here if needed
-    };
-
-    int num_arrays = 3; // Number of arrays
-    int start_index = 0; // Start index of the range
-    int end_index = 2; // End index of the range
-
-    mergeRange(arrays, start_index, end_index);
-
-    return 0;
-}
-*/
 
 
-
-
-    
