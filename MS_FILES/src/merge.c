@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
-#define RECORDS_NUM 10000
 
 int createAndPopulateHeapFile(char* filename){
     HP_CreateFile(filename);
@@ -28,120 +27,124 @@ int nextOutputFile(int* fileCounter){
     return file_desc;
 }
 
-void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output_FileDesc, int last_block_updated, int size) {
-    Record rec_array[size]; // New array to store the merged result
-    int new_array_index = 0;
-    int cursor = 0;
-    int block_id = last_block_updated;
-    int counter = 0;
-    for(int i = 0; i < size; i++){
-        HP_GetRecord(input_FileDesc, rec_iter[i].currentBlockId, rec_iter[i].cursor, &rec_array[i]);
-    }
 
-    BF_Block* block;
-    BF_Block_Init(&block);
-    while (counter < size && block_id <= HP_GetIdOfLastBlock(output_FileDesc)){ 
-        Record min_val;
-        strcpy(min_val.name, "Zzzzzzzzzz");
+
+void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output_FileDesc, int last_block_updated, int size) {
+    int conflicts = 0;  //Stores the number of chunks that have been fully checked. 
+    int output_file_cursor = 0; //Current record cursor of new file.
+    int block_id = last_block_updated;
+
+    char* max_string = "Zzzzzzzzzzzzz";
+
+    while(conflicts < size && block_id <= HP_GetIdOfLastBlock(output_FileDesc)){ 
+        Record current_rec; 
+        Record min_rec; //Current alphabetically first record.
+
+        strcpy(min_rec.name, max_string);
         int min_index = -1;
 
-        // Find the minimum value among the current elements of the specified range of arrays
+        //Find the minimum record, among the current elements of the array.
         for (int i = 0; i < size; ++i) {
-            if (strcmp(rec_array[i].name, min_val.name) < 0) {
-                min_val = rec_array[i];
-                min_index = i;
+            int eligible = 1;
+
+            //Out of bound chunk, therefore do take its value into consideration.
+            if(rec_iter[i].cursor == HP_GetRecordCounter(input_FileDesc, rec_iter[i].currentBlockId) &&
+            (rec_iter[i].currentBlockId == rec_iter[i].chunk.to_BlockId)){
+                eligible = 0;
             }
-            if (!strcmp(rec_array[i].name, min_val.name) && 
-            strcmp(rec_array[i].surname, min_val.surname) < 0){
-                min_val = rec_array[i];
+
+            //Finds the new current record.
+            HP_GetRecord(input_FileDesc, rec_iter[i].currentBlockId, rec_iter[i].cursor, &current_rec);
+            HP_Unpin(input_FileDesc, rec_iter[i].currentBlockId);
+
+            //Comparison between current record, and previous minimum rec (if the current is inside the bounds).
+            if(eligible && shouldSwap(&min_rec, &current_rec)){
+                min_rec = current_rec;
                 min_index = i;
             }
         }
         rec_iter[min_index].cursor++;
 
-
-        if(rec_iter[min_index].cursor < HP_GetRecordCounter(input_FileDesc, rec_iter[min_index].currentBlockId)){
-            HP_GetRecord(input_FileDesc, rec_iter[min_index].currentBlockId, rec_iter[min_index].cursor, &rec_array[min_index]);
-            HP_Unpin(input_FileDesc, rec_iter[min_index].currentBlockId);
-        }else if(rec_iter[min_index].currentBlockId < rec_iter[min_index].chunk.to_BlockId){
+        //Update the rec_iter[min_index], cursor and block if needed.
+        if(rec_iter[min_index].currentBlockId < rec_iter[min_index].chunk.to_BlockId && 
+        rec_iter[min_index].cursor == HP_GetRecordCounter(input_FileDesc, rec_iter[min_index].currentBlockId)){
             rec_iter[min_index].currentBlockId++;
             rec_iter[min_index].cursor = 0;
-            HP_GetRecord(input_FileDesc, rec_iter[min_index].currentBlockId, rec_iter[min_index].cursor, &rec_array[min_index]);
-            HP_Unpin(input_FileDesc, rec_iter[min_index].currentBlockId);
-        }else{
-            // rec_iter[min_index].currentBlockId = -1;
-            strcpy(rec_array[min_index].name,"Zzzzzzzzzzzzz");
-            strcpy(rec_array[min_index].surname,"Zzzzzzzzzzzzz");
-            counter ++;
+        //rec_iter[min_index].chunk has been fully iterated.
+        }else if(rec_iter[min_index].currentBlockId == rec_iter[min_index].chunk.to_BlockId &&
+        rec_iter[min_index].cursor == HP_GetRecordCounter(input_FileDesc, rec_iter[min_index].currentBlockId)){
+            conflicts++;            
         }
 
-        int ret = HP_UpdateRecord(output_FileDesc, block_id, cursor, min_val);
+        //Updates, the output file with the new minimum record, that was previously found.
+        int ret = HP_UpdateRecord(output_FileDesc, block_id, output_file_cursor, min_rec);
         HP_Unpin(output_FileDesc, block_id);
-        strcpy(min_val.name, "Zzzzzzzzzz");
 
-        cursor++;
-        if(cursor == 9){
-            cursor = 0;
+        //Error that was caused due to HP_UpdateRecord.
+        if(ret == -1){
+            printf("THERE WAS AN ERROR, UPDATING THE RECORD\n");
+            return;
+        }
+
+        output_file_cursor++;
+        if(output_file_cursor == HP_GetRecordCounter(input_FileDesc, block_id)){
+            output_file_cursor = 0;
             block_id++;
         }        
+
     }
 }
 
 
 void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc, int* filecounter){
+    //File is sorted, with file descriptor = output_FileDesc.
     if(chunkSize == -1){
         (*filecounter) = output_FileDesc;
         return;
     }
-
-    int max_rec = chunkSize * HP_GetMaxRecordsInBlock(input_FileDesc);
     CHUNK chunk;
-    CHUNK first_chunk, last_chunk;
-
-    chunk.from_BlockId = 1;
-    chunk.to_BlockId = chunkSize;
-    chunk.file_desc = input_FileDesc;
-    chunk.recordsInChunk = max_rec;
-    chunk.blocksInChunk = chunkSize;
-    first_chunk = chunk;
+    chunk_init(&chunk, chunkSize, input_FileDesc);
+    CHUNK last_chunk = chunk; //Stores the last chunk.
 
     CHUNK_RecordIterator rec_iter[bWay];
     CHUNK_Iterator chunk_it  = CHUNK_CreateIterator(input_FileDesc, chunkSize);
-    rec_iter[0] = CHUNK_CreateRecordIterator(&chunk);
-    chunk_it.current = chunk.to_BlockId;
-    last_chunk = chunk;
-    
+
     int count = 0, index = 1;
     while(last_chunk.to_BlockId != HP_GetIdOfLastBlock(input_FileDesc)){
+        //Manually find the first record iterator.
         rec_iter[0] = CHUNK_CreateRecordIterator(&chunk);
-        last_chunk = chunk;
         chunk_it.current = chunk.to_BlockId;
+        last_chunk = chunk;
+        
         index = 1;
-        while (CHUNK_GetNext(&chunk_it, &chunk) == 1 && index < bWay ) {
-            chunk_it.current = chunk.to_BlockId;
-            rec_iter[index] = CHUNK_CreateRecordIterator(&chunk);
-            index ++; 
+        //Finds the next bWay - 1 record iterator.(Except last one, has less than or equal to bWay - 1).
+        while(CHUNK_GetNext(&chunk_it, &chunk) == 1 && index < bWay) {
             last_chunk = chunk;
+            rec_iter[index] = CHUNK_CreateRecordIterator(&chunk);
+            chunk_it.current = chunk.to_BlockId;
+            index ++; 
         }
-
         mergeRange(rec_iter, input_FileDesc, output_FileDesc, rec_iter[0].chunk.from_BlockId, index);
-        // for(int i = 0; i < 4; i++){
-        //     printf(" %d  %d \n", rec_iter[i].chunk.from_BlockId, rec_iter[i].chunk.to_BlockId);
-        // }
     }
+
     int new_chunksize = chunkSize * bWay;
     
+    //If chunkSize = id of last block, it means the file has just been fully sorted.
     if(chunkSize == HP_GetIdOfLastBlock(input_FileDesc))
         new_chunksize = -1;
+
+    //new_chunksize > last_id -> one iteration left for the file to become fully sorted.
     if(new_chunksize > HP_GetIdOfLastBlock(input_FileDesc)) 
         new_chunksize = HP_GetIdOfLastBlock(input_FileDesc);
     
-    int new_file;;
+    //After each iteration, the output is extracted in a new file.
+    int new_file; //New file descriptor for the next iteration.
     if(new_chunksize != -1){
         new_file = nextOutputFile(filecounter);
     }else{
         new_file = input_FileDesc;
     }
+    //Recursively call merge function with the new chunk size which is chunkSize * bWay.
     merge(output_FileDesc, new_chunksize, bWay, new_file, filecounter);
 }
 

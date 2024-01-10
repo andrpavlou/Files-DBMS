@@ -53,7 +53,8 @@ CHUNK_RecordIterator CHUNK_CreateRecordIterator(CHUNK *chunk);
 /* Function to get the next record from the iterator. */
 int CHUNK_GetNextRecord(CHUNK_RecordIterator *iterator,Record* record);
 
-
+/* Function to initialize chunk */
+void chunk_init(CHUNK* chunk, int chunkSize, int input_FileDesc);
 
 
 #endif  // MY_HEADER_H

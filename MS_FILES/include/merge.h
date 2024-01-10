@@ -1,5 +1,6 @@
 #ifndef MERGE_H
 #define MERGE_H
+#define RECORDS_NUM 10000
 #include "sort.h"
 #include "chunk.h"
 

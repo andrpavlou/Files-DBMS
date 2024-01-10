@@ -141,3 +141,14 @@ int CHUNK_RecordIterator_GetNext(CHUNK_RecordIterator *iterator, Record *record)
     } 
     return 0; // No more records to iterate
 }
+
+
+///////////////////////////Functions that have been created///////////////////////////
+void chunk_init(CHUNK* chunk, int chunkSize, int input_FileDesc){
+    int max_rec = chunkSize * HP_GetMaxRecordsInBlock(input_FileDesc);
+    chunk->from_BlockId = 1;
+    chunk->to_BlockId = chunkSize;
+    chunk->file_desc = input_FileDesc;
+    chunk->recordsInChunk = max_rec;
+    chunk->blocksInChunk = chunkSize;
+}

@@ -22,19 +22,14 @@ bool shouldSwap(struct Record *rec1, struct Record *rec2) {
     return nameComparison > 0;
 }
 
+
 void sort_FileInChunks(int file_desc, int numBlocksInChunk) {
     // Assuming CHUNK_GetNext is a function that retrieves the next chunk in the file
     CHUNK chunk;
-    CHUNK_Iterator iterator = CHUNK_CreateIterator(file_desc, numBlocksInChunk);
-
-
-    chunk.from_BlockId = 1;
-    chunk.to_BlockId = numBlocksInChunk;
-    chunk.file_desc = file_desc;
-    chunk.recordsInChunk = numBlocksInChunk * HP_GetMaxRecordsInBlock(file_desc);
-    chunk.blocksInChunk = numBlocksInChunk;
-    
+    chunk_init(&chunk, numBlocksInChunk, file_desc);
     sort_Chunk(&chunk);
+    
+    CHUNK_Iterator iterator = CHUNK_CreateIterator(file_desc, numBlocksInChunk);
     iterator.current = chunk.to_BlockId;
 
 
