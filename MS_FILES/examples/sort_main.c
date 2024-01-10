@@ -19,101 +19,19 @@ int nextOutputFile(int* fileCounter);
 int main() {
     int chunkSize = 3;
     int bWay = 4;
-    int fileIterator;
     BF_Init(LRU);
     int file_desc = createAndPopulateHeapFile(FILE_NAME);
-
-    Record rec;
-    CHUNK_Iterator iterator = CHUNK_CreateIterator(file_desc, chunkSize);
-
-
-
     int file_desc2 = createAndPopulateHeapFile(OUT_NAME);
-    // HP_OpenFile(OUT_NAME, &file_desc2);
-    // printf(" %d ", file_desc2);
+
+
 
     sort_FileInChunks(file_desc, chunkSize);
-    // HP_PrintAllEntries(file_desc2);
-    // CHUNK_Print(chunk);
-    // iterator.current = chunk.to_BlockId;
-    // printf(" \n-------\n");
-
-    // Iterate through each chunk
-    // while (CHUNK_GetNext(&iterator, &chunk) == 1) {
-    //     iterator.current = chunk.to_BlockId;
-    //     printf(" \n-------\n");
-    //     CHUNK_Print(chunk);
-    // }
     merge(file_desc, chunkSize, bWay, file_desc2);
+
     HP_PrintAllEntries(file_desc2);
-
-
-    //Out of bound
-    // CHUNK_GetIthRecordInChunk(&chunk, 27, &rec);
-    // printf("RECORD IN POSITION THAT DOES NOT EXIT:");
-    // printRecord(rec);
-    // printf("\n");
-  
-    // //Starting from 0 to recordsInChunk - 1
-    // printf("RECORD IN 2nd POS:");
-    // printRecord(rec);
-    // printf("\n");
-
-    // Record newrec = randomRecord();
-    // printf("NEW RECORD:");
-    // printRecord(newrec);
-    // printf("\n");
-
-    // CHUNK_UpdateIthRecord(&chunk, 2, newrec);
-    // CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
-    // printf("UPDATED_RECORD IN 2nd POS:");
-    // printRecord(rec);
-    // printf("\n");
-
-
-
-    // CHUNK_Print(chunk);
-    // sort_Chunk(&chunk);
-    // printf("-------AFTER:-------\n");
-    // CHUNK_Print(chunk);
-
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-    // CHUNK_GetNext(&ci, &chunk);
-    // CHUNK_Print(chunk);
-
-
-
-    // CHUNK_GetIthRecordInChunk(&chunk, 2, &rec);
-    // printRecord(rec);
-
-    // sortPhase(file_desc,chunkSize);  
-
-    // mergePhases(file_desc,chunkSize,bWay,&fileIterator);
+    // int num = 1;
+    // int* nump = &num;
+    // nextOutputFile(nump);
 }
 
 int createAndPopulateHeapFile(char* filename){
@@ -140,7 +58,7 @@ void sortPhase(int file_desc,int chunkSize){
 void mergePhases(int inputFileDesc,int chunkSize,int bWay, int* fileCounter){
     int oututFileDesc;
     while(chunkSize<=HP_GetIdOfLastBlock(inputFileDesc)){
-        oututFileDesc =   nextOutputFile(fileCounter);
+        oututFileDesc =  nextOutputFile(fileCounter);
         merge(inputFileDesc, chunkSize, bWay, oututFileDesc );
         HP_CloseFile(inputFileDesc);
         chunkSize*=bWay;

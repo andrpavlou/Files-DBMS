@@ -13,7 +13,6 @@ void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output
     int cursor = 0;
     int block_id = last_block_updated;
     int counter = 0;
-
     for(int i = 0; i < size; i++){
         HP_GetRecord(input_FileDesc, rec_iter[i].currentBlockId, rec_iter[i].cursor, &rec_array[i]);
     }
@@ -26,7 +25,7 @@ void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output
         int min_index = -1;
 
         // Find the minimum value among the current elements of the specified range of arrays
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < size; ++i) {
             if (strcmp(rec_array[i].name, min_val.name) < 0) {
                 min_val = rec_array[i];
                 min_index = i;
@@ -42,10 +41,12 @@ void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output
 
         if(rec_iter[min_index].cursor < HP_GetRecordCounter(input_FileDesc, rec_iter[min_index].currentBlockId)){
             HP_GetRecord(input_FileDesc, rec_iter[min_index].currentBlockId, rec_iter[min_index].cursor, &rec_array[min_index]);
+            HP_Unpin(input_FileDesc, rec_iter[min_index].currentBlockId);
         }else if(rec_iter[min_index].currentBlockId < rec_iter[min_index].chunk.to_BlockId){
             rec_iter[min_index].currentBlockId++;
             rec_iter[min_index].cursor = 0;
             HP_GetRecord(input_FileDesc, rec_iter[min_index].currentBlockId, rec_iter[min_index].cursor, &rec_array[min_index]);
+            HP_Unpin(input_FileDesc, rec_iter[min_index].currentBlockId);
         }else{
             // rec_iter[min_index].currentBlockId = -1;
             strcpy(rec_array[min_index].name,"Zzzzzzzzzzzzz");
@@ -54,12 +55,7 @@ void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output
         }
 
         int ret = HP_UpdateRecord(output_FileDesc, block_id, cursor, min_val);
-        
-        BF_GetBlock(output_FileDesc, block_id, block);
-
-        BF_Block_SetDirty(block);
-        BF_UnpinBlock(block);
-
+        HP_Unpin(output_FileDesc, block_id);
         strcpy(min_val.name, "Zzzzzzzzzz");
 
         cursor++;
@@ -67,18 +63,16 @@ void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output
             cursor = 0;
             block_id++;
         }
+        
     }
 }
 
 
 
-
-
 void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
-
-
-    if(chunkSize > HP_GetIdOfLastBlock(input_FileDesc))
+    if(chunkSize == -1){
         return;
+    }
  
     int max_rec = chunkSize * HP_GetMaxRecordsInBlock(input_FileDesc);
     CHUNK chunk;
@@ -99,6 +93,9 @@ void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
     
     int count = 0, index = 1;
     while(last_chunk.to_BlockId != HP_GetIdOfLastBlock(input_FileDesc)){
+        rec_iter[0] = CHUNK_CreateRecordIterator(&chunk);
+        last_chunk = chunk;
+        chunk_it.current = chunk.to_BlockId;
         index = 1;
         while (CHUNK_GetNext(&chunk_it, &chunk) == 1 && index < bWay ) {
             chunk_it.current = chunk.to_BlockId;
@@ -108,18 +105,19 @@ void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
         }
 
         mergeRange(rec_iter, input_FileDesc, output_FileDesc, rec_iter[0].chunk.from_BlockId, index);
-        rec_iter[0] = CHUNK_CreateRecordIterator(&chunk);
-        first_chunk = chunk;
-        chunk_it.current = chunk.to_BlockId;
+        // for(int i = 0; i < 4; i++){
+        //     printf(" %d  %d \n", rec_iter[i].chunk.from_BlockId, rec_iter[i].chunk.to_BlockId);
+        // }
     }
-    int new_chunksize = chunkSize * 2;
+    int new_chunksize = chunkSize * bWay;
     
-    // for(int i = 0; i <=0; i++)
+    if(chunkSize == HP_GetIdOfLastBlock(input_FileDesc))
+        new_chunksize = -1;
+    if(new_chunksize > HP_GetIdOfLastBlock(input_FileDesc)) 
+        new_chunksize = HP_GetIdOfLastBlock(input_FileDesc);
+    
 
-    // if(new_chunksize > HP_GetIdOfLastBlock(input_FileDesc)) 
-    //     new_chunksize = HP_GetIdOfLastBlock(input_FileDesc);
-    // printf(" %d ", new_chunksize);
-    // merge(input_FileDesc, new_chunksize, bWay, output_FileDesc);
+    merge(output_FileDesc, new_chunksize, bWay, input_FileDesc);
 
     // HP_PrintAllEntries(output_FileDesc);
 }

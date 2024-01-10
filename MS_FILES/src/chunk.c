@@ -63,6 +63,7 @@ int CHUNK_GetIthRecordInChunk(CHUNK* chunk, int i, Record* record) {
 
         // Assuming a function to retrieve the record from a block, replace accordingly
         if (HP_GetRecord(chunk->file_desc, blockId, recordIndexInBlock, record) == 0) {
+            HP_Unpin(chunk->file_desc, blockId);
             return 0; // Success
         } else {
             return -1; // Error in retrieving the record from the block
@@ -86,6 +87,7 @@ int CHUNK_UpdateIthRecord(CHUNK* chunk, int i, Record record) {
 
         // Assuming a function to update the record in a block, replace accordingly
         if (HP_UpdateRecord(chunk->file_desc, blockId, recordIndexInBlock, record) == 0) {
+            HP_Unpin(chunk->file_desc, blockId);
             return 0; // Success
         } else {
             return -1; // Error in updating the record in the block
