@@ -3,9 +3,30 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#define RECORDS_NUM 10000
 
-#define MAX_SIZE 27  // Maximum size for each array
-#define MAX_ARR 4   // Maximum number of arrays
+int createAndPopulateHeapFile(char* filename){
+    HP_CreateFile(filename);
+  
+    int file_desc;
+    HP_OpenFile(filename, &file_desc);
+
+    Record record;
+    srand(12569874);
+    for (int id = 0; id < RECORDS_NUM; ++id){
+        record = randomRecord();
+        HP_InsertEntry(file_desc, record);
+    }
+  return file_desc;
+}
+
+int nextOutputFile(int* fileCounter){
+    char mergedFile[50];
+    char tmp[] = "out";
+    sprintf(mergedFile, "%s%d.db", tmp, (*fileCounter)++);
+    int file_desc = createAndPopulateHeapFile(mergedFile);
+    return file_desc;
+}
 
 void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output_FileDesc, int last_block_updated, int size) {
     Record rec_array[size]; // New array to store the merged result
@@ -62,18 +83,17 @@ void mergeRange(CHUNK_RecordIterator rec_iter[] , int input_FileDesc, int output
         if(cursor == 9){
             cursor = 0;
             block_id++;
-        }
-        
+        }        
     }
 }
 
 
-
-void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
+void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc, int* filecounter){
     if(chunkSize == -1){
+        (*filecounter) = output_FileDesc;
         return;
     }
- 
+
     int max_rec = chunkSize * HP_GetMaxRecordsInBlock(input_FileDesc);
     CHUNK chunk;
     CHUNK first_chunk, last_chunk;
@@ -116,10 +136,13 @@ void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc){
     if(new_chunksize > HP_GetIdOfLastBlock(input_FileDesc)) 
         new_chunksize = HP_GetIdOfLastBlock(input_FileDesc);
     
-
-    merge(output_FileDesc, new_chunksize, bWay, input_FileDesc);
-
-    // HP_PrintAllEntries(output_FileDesc);
+    int new_file;;
+    if(new_chunksize != -1){
+        new_file = nextOutputFile(filecounter);
+    }else{
+        new_file = input_FileDesc;
+    }
+    merge(output_FileDesc, new_chunksize, bWay, new_file, filecounter);
 }
 
 
