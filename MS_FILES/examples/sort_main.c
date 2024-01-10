@@ -24,21 +24,16 @@ int main() {
     int file_desc = createAndPopulateHeapFile(FILE_NAME);
 
     Record rec;
-    CHUNK chunk;
     CHUNK_Iterator iterator = CHUNK_CreateIterator(file_desc, chunkSize);
-  
-    chunk.from_BlockId = 1;
-    chunk.to_BlockId = chunkSize;
-    chunk.file_desc = file_desc;
-    chunk.recordsInChunk = 27;
-    chunk.blocksInChunk = chunkSize;
 
 
-    int file_desc2 = HP_CreateFile(OUT_NAME);
 
-
+    int file_desc2 = createAndPopulateHeapFile(OUT_NAME);
+    // HP_OpenFile(OUT_NAME, &file_desc2);
+    // printf(" %d ", file_desc2);
 
     sort_FileInChunks(file_desc, chunkSize);
+    // HP_PrintAllEntries(file_desc2);
     // CHUNK_Print(chunk);
     // iterator.current = chunk.to_BlockId;
     // printf(" \n-------\n");
@@ -50,6 +45,7 @@ int main() {
     //     CHUNK_Print(chunk);
     // }
     merge(file_desc, chunkSize, bWay, file_desc2);
+    HP_PrintAllEntries(file_desc2);
 
 
     //Out of bound
