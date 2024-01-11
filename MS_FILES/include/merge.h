@@ -1,6 +1,7 @@
 #ifndef MERGE_H
 #define MERGE_H
 #define RECORDS_NUM 10000
+
 #include "sort.h"
 #include "chunk.h"
 
@@ -8,4 +9,5 @@
 void merge(int input_FileDesc, int chunkSize, int bWay, int output_FileDesc, int* filecounter);
 
 int createAndPopulateHeapFile(char* filename);
+
 #endif  // MY_HEADER_H
