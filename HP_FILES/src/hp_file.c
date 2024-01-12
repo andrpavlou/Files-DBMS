@@ -20,6 +20,7 @@ typedef struct {
     void* next_block; //Pointer of the next block.(Not used becasue it is not needed in HeapFiles)
 } HP_block_info;      
 
+
 HP_block_info binfo = {
   .num_rec = 0, 
   .next_block = NULL 
