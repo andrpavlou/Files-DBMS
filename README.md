@@ -70,4 +70,41 @@ Explained:
   (2) In this case, the split occurs by creating a new bucket, to which the original pointer that underwent hashing and its buddy will point. To locate the buddy, which has a different most significant bit, a new bucket is created.
 
 
- 3) Merge Sort Algorithm implementation for searching 
+## 3) Merge Sort Algorithm implementation for searching (Was Only Allowed to Use Chatgpt)
+Chats with GPT:
+
+- shouldSwap / CHUNK_CreateIterator: https://chat.openai.com/share/472bf9ad-39ec-4217-acc1-672165ad4390
+- Chunk Iterator Creation: https://chat.openai.com/share/fdd48c25-458c-420a-b23e-b2e086c1aaa4
+- sort_FileInChunks: https://chat.openai.com/share/2caab5e1-df97-4318-aa03-32b6554c4ad7
+- Merge Sort Function (C): https://chat.openai.com/share/d12e9b3b-7423-42ee-9927-646f258bb5f7
+
+
+Correctness Testing:
+The correctness of the program has been tested for various bWay and chunkSize values, for records 10,000+, without encountering any issues, successfully sorting the file.
+
+Implementation Notes:
+There were no major variations in the implementation of the assignment as it was done based on the presentation provided in class. Our conversations with ChatGPT, as seen in the links above, helped us make minor adjustments to adapt the code to our data. Minimal to no changes were made during the implementation of ShouldSwap/Chunks/Sort. Regarding the merge function, several attempts were made until we could be understood, as ChatGPT seems unable to grasp concepts like blocks/chunks, etc., and adjust the code accordingly. Therefore, we chose to refer to structures like arrays, which are more familiar, to make ourselves clearer. After our last attempt, shown in the link above, we managed to achieve better results by making some changes to make the code cleaner. In the conversion to block/file levels, we used functions from the library provided to us.
+
+Program Verification:
+
+10-Way External Sort
+
+MAX_RECORDS = 10,000
+bWay = 10
+Blocks/Chunk = 5
+Intermediate Files Created/Iterations = 4
+2-Way External Sort
+
+MAX_RECORDS = 10,000
+bWay = 2
+Blocks/Chunk = 5
+Intermediate Files Created/Iterations = 9
+As shown above, for 10,000 records, the utility of multi-way sorting is already evident. For 10-way, 4 intermediate files are created, while for 2-way (classic pairwise merge), 9 intermediate files are created, as expected. This way, space and time are saved.
+
+You can try the test for 100,000 Records!
+
+
+
+
+
+
