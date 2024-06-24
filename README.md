@@ -2,7 +2,7 @@
 
 TEAM MEMBERS: 
 
-Michaela Koulloli 
+Michaela Koullolli 
 
 Andreas Pavlou 
 
